@@ -25,3 +25,6 @@ def test_not_in_service():
 
 def test_unknown_status_falls_back_to_error_text():
     assert format_eta_message(E, 99, None) == API_ERROR_TEXT
+
+def test_status0_none_estimate_falls_back_to_error_text():
+    assert format_eta_message(M, 0, None) == API_ERROR_TEXT
