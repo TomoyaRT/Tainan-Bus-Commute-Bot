@@ -45,6 +45,7 @@ async def test_get_eta_fetches_token_then_data():
     assert entries[0]["EstimateTime"] == 120
     assert route.calls.last.request.headers["authorization"] == "Bearer tok"
     assert store.value[0] == "tok"
+    assert route.calls.last.request.url.params["$format"] == "JSON"
 
 
 @respx.mock
@@ -63,6 +64,26 @@ async def test_get_eta_reuses_cached_token():
 async def test_get_eta_raises_tdxerror_on_non_200():
     respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json={"access_token": "tok", "expires_in": 86400}))
     respx.get(ETA_URL).mock(return_value=httpx.Response(500, text="boom"))
+    store = FakeTokenStore()
+    async with httpx.AsyncClient() as http:
+        client = TDXClient("id", "secret", store, http)
+        with pytest.raises(TDXError):
+            await client.get_eta("Tainan", "70", NOW)
+
+
+@respx.mock
+async def test_get_token_raises_on_non_json_body():
+    respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, text="not json"))
+    store = FakeTokenStore()
+    async with httpx.AsyncClient() as http:
+        client = TDXClient("id", "secret", store, http)
+        with pytest.raises(TDXError):
+            await client.get_eta("Tainan", "70", NOW)
+
+
+@respx.mock
+async def test_get_token_raises_on_missing_access_token():
+    respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json={"expires_in": 86400}))
     store = FakeTokenStore()
     async with httpx.AsyncClient() as http:
         client = TDXClient("id", "secret", store, http)

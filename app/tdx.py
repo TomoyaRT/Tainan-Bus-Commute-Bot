@@ -47,9 +47,12 @@ class TDXClient:
             raise TDXError(f"token request failed: {exc}") from exc
         if resp.status_code != 200:
             raise TDXError(f"token status {resp.status_code}")
-        data = resp.json()
-        token = data["access_token"]
-        expires_at = now + timedelta(seconds=int(data["expires_in"]))
+        try:
+            data = resp.json()
+            token = data["access_token"]
+            expires_at = now + timedelta(seconds=int(data["expires_in"]))
+        except (ValueError, KeyError) as exc:
+            raise TDXError(f"token parse failed: {exc}") from exc
         await self.store.save_tdx_token(token, expires_at)
         return token
 
