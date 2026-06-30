@@ -401,6 +401,9 @@ def test_not_in_service():
 
 def test_unknown_status_falls_back_to_error_text():
     assert format_eta_message(E, 99, None) == API_ERROR_TEXT
+
+def test_status0_none_estimate_falls_back_to_error_text():
+    assert format_eta_message(M, 0, None) == API_ERROR_TEXT
 ```
 
 - [ ] **Step 2: 執行測試確認失敗**
@@ -427,8 +430,9 @@ def format_eta_message(slot: SlotConfig, stop_status: int, estimate_time: int | 
     if stop_status == 0:
         if estimate_time is not None and estimate_time <= NEAR_ARRIVAL_SECONDS:
             return f"🚌 {bus} - 進站中，即將到「{name}」"
-        minutes = ceil((estimate_time or 0) / 60)
-        return f"🚌 {bus} - 預估 {minutes} 分鐘到「{name}」"
+        if estimate_time is not None:
+            return f"🚌 {bus} - 預估 {ceil(estimate_time / 60)} 分鐘到「{name}」"
+        return API_ERROR_TEXT  # status 0 但無 ETA = 無資料
     if stop_status == 1:
         return f"🚌 {bus} - 尚未發車（{name}）"
     if stop_status == 2:
