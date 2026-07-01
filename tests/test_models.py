@@ -10,12 +10,12 @@ TPE = ZoneInfo("Asia/Taipei")
 
 def test_constants():
     assert VALID_INTERVALS == (5, 10, 15, 20)
-    assert DEFAULT_ENABLED_DAYS == [2, 3, 4, 5, 6]
+    assert DEFAULT_ENABLED_DAYS == [1, 2, 3, 4, 5]
 
 def test_user_default_uses_spec_defaults():
     u = UserSettings.default(123)
     assert u.chat_id == 123
-    assert u.enabled_days == [2, 3, 4, 5, 6]
+    assert u.enabled_days == [1, 2, 3, 4, 5]
     assert u.slots["morning"].bus == "70左"
     assert u.slots["morning"].route == "70"
     assert u.slots["morning"].sub_route == "70左"

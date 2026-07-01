@@ -176,6 +176,15 @@ async def test_run_tick_iterates_all_users():
     assert {s[0] for s in tg.sent} == {1, 2}
 
 
+async def test_run_tick_caches_route_calls_across_users():
+    store, tdx, tg = InMemoryStore(), FakeTDX(_morning_entry()), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await store.save_user(UserSettings.default(2))
+    await run_tick(_tue(8, 0), store, tdx, tg, "Tainan")
+    assert {s[0] for s in tg.sent} == {1, 2}
+    assert tdx.calls == 1  # Verify that only 1 TDX query was made for both users due to caching!
+
+
 async def test_quota_exhausted_consecutive_failure_pushes_quota_error():
     from app.tdx import TDXError
     store, tdx, tg = InMemoryStore(), FakeTDX(error=TDXError("quota", status_code=429)), FakeTelegram()

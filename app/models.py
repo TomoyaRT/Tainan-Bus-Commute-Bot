@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 VALID_INTERVALS = (5, 10, 15, 20)
-DEFAULT_ENABLED_DAYS = [2, 3, 4, 5, 6]
+DEFAULT_ENABLED_DAYS = [1, 2, 3, 4, 5]
 
 
 @dataclass

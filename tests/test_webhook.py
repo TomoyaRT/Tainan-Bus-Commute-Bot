@@ -100,10 +100,10 @@ async def test_menu_stops_shows_readonly_text():
 
 async def test_menu_days_shows_picker_with_current():
     store, tg = InMemoryStore(), FakeTelegram()
-    await store.save_user(UserSettings.default(1))  # 預設 [2,3,4,5,6]
+    await store.save_user(UserSettings.default(1))  # 預設 [1,2,3,4,5]
     await handle_update(_cb("menu:days"), store, tg, NOW)
     submit = tg.sent[0][2]["inline_keyboard"][-1][0]
-    assert submit["callback_data"] == f"daysub:{days_to_mask([2,3,4,5,6])}"
+    assert submit["callback_data"] == f"daysub:{days_to_mask([1,2,3,4,5])}"
     assert submit["text"] == "⏰ 保存設定"
 
 
