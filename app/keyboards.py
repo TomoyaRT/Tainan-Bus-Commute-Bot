@@ -49,7 +49,7 @@ def modify_settings_keyboard() -> dict:
     return {
         "inline_keyboard": [
             [{"text": "推播間隔", "callback_data": "menu:interval"},
-             {"text": "推播星期", "callback_data": "menu:days"},
+             {"text": "推播日", "callback_data": "menu:days"},
              {"text": "推播時段", "callback_data": "menu:window"}],
             [{"text": "⬅️ 返回", "callback_data": "menu:main"}]
         ]

@@ -33,7 +33,7 @@ def test_settings_menu_keyboards():
     kb_modify = modify_settings_keyboard()
     datas_modify = [b["callback_data"] for b in kb_modify["inline_keyboard"][0]]
     assert datas_modify == ["menu:interval", "menu:days", "menu:window"]
-    assert kb_modify["inline_keyboard"][0][1]["text"] == "推播星期"
+    assert kb_modify["inline_keyboard"][0][1]["text"] == "推播日"
     assert kb_modify["inline_keyboard"][1][0]["callback_data"] == "menu:main"
 
     kb_info = info_settings_keyboard()
