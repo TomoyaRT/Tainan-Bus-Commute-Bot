@@ -131,6 +131,6 @@ echo "Telegram Webhook 註冊回應: $REG_RESP"
 
 echo "=================================================="
 echo "  🎉 GCP 雲端部署全部完成！"
-echo "  - 服務狀態檢查: $SERVICE_URL/healthz"
+echo "  - 服務狀態檢查: $SERVICE_URL/health"
 echo "  - 請到 Telegram 打開您的 Bot，送出 /start 開始測試！"
 echo "=================================================="

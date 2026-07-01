@@ -52,6 +52,13 @@ def client(monkeypatch):
     return TestClient(main.app), store, tg
 
 
+def test_health_endpoint(client):
+    c, store, tg = client
+    resp = c.get("/health")  # 用 /health（非 /healthz——後者被 GFE 保留攔截）
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+
+
 def test_tick_rejects_bad_token(client):
     c, store, tg = client
     resp = c.post("/tick", headers={"X-Tick-Token": "wrong"})

@@ -18,8 +18,9 @@ def current_now() -> datetime:
     return datetime.now(TZ)
 
 
-@app.get("/healthz")
-async def healthz():
+@app.get("/health")
+async def health():
+    # 注意：路徑不可用 /healthz——該字面路徑被 Google Front End 保留攔截，永遠打不到容器。
     return {"ok": True}
 
 
