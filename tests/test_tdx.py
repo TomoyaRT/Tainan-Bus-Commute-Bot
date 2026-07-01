@@ -34,6 +34,17 @@ def test_select_stop_handles_plain_string_and_missing():
     assert select_stop(entries, "不存在") is None
 
 
+def test_select_stop_direction_filter_and_ambiguity():
+    entries = [
+        {"StopName": {"Zh_tw": "台南高工"}, "Direction": 0, "EstimateTime": 300},
+        {"StopName": {"Zh_tw": "台南高工"}, "Direction": 1, "EstimateTime": 60},
+    ]
+    # 指定方向 → 取該向
+    assert select_stop(entries, "台南高工", direction=1)["EstimateTime"] == 60
+    # 未指定方向、同站名跨兩向 → 不猜，回 None（避免推錯方向的車）
+    assert select_stop(entries, "台南高工") is None
+
+
 @respx.mock
 async def test_get_eta_fetches_token_then_data():
     respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json={"access_token": "tok", "expires_in": 86400}))

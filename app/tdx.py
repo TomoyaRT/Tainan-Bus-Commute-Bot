@@ -13,13 +13,28 @@ class TDXError(Exception):
     pass
 
 
-def select_stop(entries: list[dict], stop_name: str) -> dict | None:
+def select_stop(
+    entries: list[dict], stop_name: str, direction: int | None = None
+) -> dict | None:
+    """從到站清單挑出目標站。
+
+    direction 指定時只取該方向；未指定時，若同站名跨多個 Direction（左右環狀
+    可能同時回傳），無法判斷是哪一向的車，回傳 None（寧可不推，也不推錯方向）。
+    """
+    matches = []
     for entry in entries:
         raw = entry.get("StopName")
         zh = raw.get("Zh_tw") if isinstance(raw, dict) else raw
-        if zh == stop_name:
-            return entry
-    return None
+        if zh != stop_name:
+            continue
+        if direction is not None and entry.get("Direction") != direction:
+            continue
+        matches.append(entry)
+    if not matches:
+        return None
+    if len({e.get("Direction") for e in matches}) > 1:
+        return None
+    return matches[0]
 
 
 class TDXClient:

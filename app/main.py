@@ -10,7 +10,6 @@ from app.deps import build_runtime
 from app.timeutil import TZ
 
 CITY = "Tainan"
-ROUTE = "70"
 
 app = FastAPI()
 
@@ -29,7 +28,7 @@ async def tick(x_tick_token: str = Header(default="")):
     if x_tick_token != os.environ.get("TICK_AUTH_TOKEN"):
         raise HTTPException(status_code=403, detail="forbidden")
     store, tdx, telegram = build_runtime()
-    await scheduler.run_tick(current_now(), store, tdx, telegram, CITY, ROUTE)
+    await scheduler.run_tick(current_now(), store, tdx, telegram, CITY)
     return {"ok": True}
 
 

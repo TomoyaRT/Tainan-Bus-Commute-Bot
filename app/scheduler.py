@@ -19,7 +19,7 @@ def active_slot(now: datetime, settings: UserSettings) -> str | None:
     return None
 
 
-async def process_user(now, settings, store, tdx, telegram, city, route) -> None:
+async def process_user(now, settings, store, tdx, telegram, city) -> None:
     if now.isoweekday() not in settings.enabled_days:
         return
     slot = active_slot(now, settings)
@@ -39,7 +39,7 @@ async def process_user(now, settings, store, tdx, telegram, city, route) -> None
         return
 
     try:
-        entries = await tdx.get_eta(city, route, now)
+        entries = await tdx.get_eta(city, cfg.route, now)
         match = select_stop(entries, cfg.stop_name)
         if match is None:
             raise TDXError("target stop not found")
@@ -58,6 +58,6 @@ async def process_user(now, settings, store, tdx, telegram, city, route) -> None
     await store.save_runtime(settings.chat_id, date_str, runtime)
 
 
-async def run_tick(now, store, tdx, telegram, city, route) -> None:
+async def run_tick(now, store, tdx, telegram, city) -> None:
     for settings in await store.list_users():
-        await process_user(now, settings, store, tdx, telegram, city, route)
+        await process_user(now, settings, store, tdx, telegram, city)

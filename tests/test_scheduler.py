@@ -52,7 +52,7 @@ def test_active_slot_picks_window():
 async def test_first_push_sends_and_records_lastpush():
     store, tdx, tg = InMemoryStore(), FakeTDX(_morning_entry(420)), FakeTelegram()
     await _seed_user(store)
-    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
     assert len(tg.sent) == 1
     assert "預估 7 分鐘到「台南高工」" in tg.sent[0][1]
     rt = await store.get_runtime(1, "2026-06-30")
@@ -63,9 +63,9 @@ async def test_skips_when_not_due():
     store, tdx, tg = InMemoryStore(), FakeTDX(_morning_entry()), FakeTelegram()
     await _seed_user(store)
     # 先推一次
-    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
     # 5 分鐘後、預設間隔 10 分 → 不該再推
-    await process_user(_tue(8, 5), await store.get_user(1), store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 5), await store.get_user(1), store, tdx, tg, "Tainan")
     assert len(tg.sent) == 1
 
 
@@ -74,7 +74,7 @@ async def test_skips_when_day_not_enabled():
     u = UserSettings.default(1)
     u.enabled_days = [1]  # 只有週一
     await store.save_user(u)
-    await process_user(_tue(8, 0), u, store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 0), u, store, tdx, tg, "Tainan")
     assert tg.sent == []
 
 
@@ -84,7 +84,7 @@ async def test_stopped_slot_is_skipped():
     rt = await store.get_runtime(1, "2026-06-30")
     rt.morning.stopped = True
     await store.save_runtime(1, "2026-06-30", rt)
-    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
     assert tg.sent == []
 
 
@@ -96,7 +96,7 @@ async def test_interval_override_applies():
     rt.morning.last_push_at = _tue(8, 0)
     await store.save_runtime(1, "2026-06-30", rt)
     # 5 分鐘後、override=5 → 應推
-    await process_user(_tue(8, 5), await store.get_user(1), store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 5), await store.get_user(1), store, tdx, tg, "Tainan")
     assert len(tg.sent) == 1
 
 
@@ -104,7 +104,7 @@ async def test_failure_below_threshold_is_silent():
     from app.tdx import TDXError
     store, tdx, tg = InMemoryStore(), FakeTDX(error=TDXError("boom")), FakeTelegram()
     await _seed_user(store)
-    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
     assert tg.sent == []
     rt = await store.get_runtime(1, "2026-06-30")
     assert rt.morning.fail_count == 1
@@ -117,9 +117,9 @@ async def test_second_consecutive_failure_pushes_error_and_stops():
     store, tdx, tg = InMemoryStore(), FakeTDX(error=TDXError("boom")), FakeTelegram()
     await _seed_user(store)
     # 第一次失敗（靜默）
-    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
     # 第二次失敗（推一次錯誤並停）
-    await process_user(_tue(8, 10), await store.get_user(1), store, tdx, tg, "Tainan", "70")
+    await process_user(_tue(8, 10), await store.get_user(1), store, tdx, tg, "Tainan")
     assert tg.sent == [(1, API_ERROR_TEXT, None)]
     rt = await store.get_runtime(1, "2026-06-30")
     assert rt.morning.stopped is True
@@ -130,16 +130,46 @@ async def test_success_resets_fail_count():
     store, tg = InMemoryStore(), FakeTelegram()
     await _seed_user(store)
     failing = FakeTDX(error=TDXError("boom"))
-    await process_user(_tue(8, 0), await store.get_user(1), store, failing, tg, "Tainan", "70")
+    await process_user(_tue(8, 0), await store.get_user(1), store, failing, tg, "Tainan")
     ok = FakeTDX(_morning_entry())
-    await process_user(_tue(8, 10), await store.get_user(1), store, ok, tg, "Tainan", "70")
+    await process_user(_tue(8, 10), await store.get_user(1), store, ok, tg, "Tainan")
     rt = await store.get_runtime(1, "2026-06-30")
     assert rt.morning.fail_count == 0
+
+
+async def test_queries_slot_specific_route():
+    class RouteRecordingTDX:
+        def __init__(self, entries):
+            self.entries = entries
+            self.routes = []
+
+        async def get_eta(self, city, route, now):
+            self.routes.append(route)
+            return self.entries
+
+    store, tg = InMemoryStore(), FakeTelegram()
+    tdx = RouteRecordingTDX(_morning_entry())
+    await _seed_user(store)
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
+    assert tdx.routes == ["70左"]  # 上班時段查自己的子路線，而非全域 "70"
+
+
+async def test_ambiguous_direction_is_not_pushed():
+    entries = [
+        {"StopName": {"Zh_tw": "台南高工"}, "Direction": 0, "StopStatus": 0, "EstimateTime": 300},
+        {"StopName": {"Zh_tw": "台南高工"}, "Direction": 1, "StopStatus": 0, "EstimateTime": 60},
+    ]
+    store, tdx, tg = InMemoryStore(), FakeTDX(entries), FakeTelegram()
+    await _seed_user(store)
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
+    assert tg.sent == []  # 跨方向無法判斷 → 不推
+    rt = await store.get_runtime(1, "2026-06-30")
+    assert rt.morning.fail_count == 1  # 計為一次失敗
 
 
 async def test_run_tick_iterates_all_users():
     store, tdx, tg = InMemoryStore(), FakeTDX(_morning_entry()), FakeTelegram()
     await store.save_user(UserSettings.default(1))
     await store.save_user(UserSettings.default(2))
-    await run_tick(_tue(8, 0), store, tdx, tg, "Tainan", "70")
+    await run_tick(_tue(8, 0), store, tdx, tg, "Tainan")
     assert {s[0] for s in tg.sent} == {1, 2}
