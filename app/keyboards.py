@@ -7,7 +7,7 @@ SLOT_LABELS = {"morning": "上班", "evening": "下班"}
 
 # 底部常駐鍵盤的按鈕文字（同時作為 webhook 訊息路由的 key）
 BTN_PUSH_NOW = "立即推播"
-BTN_SETTINGS = "設定"
+BTN_SETTINGS = "控制台"
 BTN_MANUAL = "說明書"
 
 
@@ -35,7 +35,7 @@ def settings_reply_keyboard() -> dict:
 
 
 def settings_main_keyboard() -> dict:
-    """點「設定」後顯示的第一層類別選單。"""
+    """點「控制台」後顯示的第一層類別選單。"""
     return {
         "inline_keyboard": [
             [{"text": "修改設定", "callback_data": "menu:modify_menu"},
