@@ -69,3 +69,63 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:${
 ```
 
 預期：每筆 binding 回傳更新後的政策。服務帳號 `tainan-bus-run` 僅具「讀取上述機密」與「Firestore 使用者（datastore.user）」權限，符合最小權限原則。
+
+---
+
+## 5. GitHub Actions 持續部署（WIF 免長期金鑰）
+
+CI/CD 以 Workload Identity Federation（WIF）讓 GitHub Actions 直接聯合 GCP 身分，**不需下載長期服務帳號金鑰**。
+
+### 5.1 建立部署服務帳號與授權
+
+```bash
+gcloud iam service-accounts create gh-deployer --display-name="github deployer"
+export DEPLOY_SA="gh-deployer@${PROJECT_ID}.iam.gserviceaccount.com"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:${DEPLOY_SA}" --role=roles/run.admin
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:${DEPLOY_SA}" --role=roles/artifactregistry.writer
+# 部署時需以 RUN_SA 身分佈署 Cloud Run，故 DEPLOY_SA 需可模擬 RUN_SA
+gcloud iam service-accounts add-iam-policy-binding "$RUN_SA" --member="serviceAccount:${DEPLOY_SA}" --role=roles/iam.serviceAccountUser
+```
+
+### 5.2 建立 WIF pool 與 provider
+
+```bash
+gcloud iam workload-identity-pools create github --location=global
+gcloud iam workload-identity-pools providers create-oidc github-oidc \
+  --location=global --workload-identity-pool=github \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository=='<owner>/<repo>'"
+```
+
+`--attribute-condition` 將可聯合身分限定於本 repo，避免其他 repo 冒用。
+
+### 5.3 允許本 repo 模擬 DEPLOY_SA
+
+```bash
+export PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SA" \
+  --role=roles/iam.workloadIdentityUser \
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/<owner>/<repo>"
+```
+
+### 5.4 設定 GitHub repo 變數（Settings → Secrets and variables → Actions → Variables）
+
+- `WIF_PROVIDER`：`projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/providers/github-oidc`
+- `DEPLOY_SA`：`gh-deployer@<PROJECT_ID>.iam.gserviceaccount.com`
+- `GCP_PROJECT`：`<PROJECT_ID>`
+
+### 5.5 workflow 說明
+
+`.github/workflows/deploy.yml` 於 push 到 `main` 時：先跑 `test`（pytest），通過後 `deploy` build 映像推 Artifact Registry，再 `gcloud run deploy`。
+
+**取捨（重要）**：`/webhook` 需可被 Telegram（外部）呼叫，故 Cloud Run 採 `--allow-unauthenticated`。安全性完全依賴端點自帶的標頭驗證——`/tick` 比對 `X-Tick-Token`、`/webhook` 比對 `X-Telegram-Bot-Api-Secret-Token`，兩者皆為 Secret Manager 中的長隨機字串。未帶正確標頭一律回 403。
+
+### 5.6 觸發部署並驗證
+
+```bash
+git push origin main
+# 到 GitHub Actions 確認 test 與 deploy 皆綠燈，取得 Cloud Run URL：
+gcloud run services describe tainan-bus --region asia-east1 --format='value(status.url)'
+curl -s -o /dev/null -w "%{http_code}" "<URL>/healthz"   # 預期 200
+```
