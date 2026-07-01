@@ -44,8 +44,8 @@ def test_day_picker_marks_selected_and_carries_mask():
     flat = [b for row in kb["inline_keyboard"] for b in row]
     tue = next(b for b in flat if b["callback_data"].startswith("day:2:"))
     mon = next(b for b in flat if b["callback_data"].startswith("day:1:"))
-    assert tue["text"] == "【週二】"   # 已選：括號標示，不用表情符號
+    assert tue["text"] == "✅ 週二"   # 已選：✅ 前綴
     assert mon["text"] == "週一"       # 未選
     submit = flat[-1]
     assert submit["callback_data"] == f"daysub:{mask}"
-    assert submit["text"] == "送出設定"  # 送出按鈕外觀明顯不同、無表情符號
+    assert submit["text"] == "保存設定"  # 保存按鈕外觀明顯不同

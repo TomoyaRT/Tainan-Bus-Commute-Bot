@@ -97,7 +97,7 @@ async def test_menu_days_shows_picker_with_current():
     await handle_update(_cb("menu:days"), store, tg, NOW)
     submit = tg.sent[0][2]["inline_keyboard"][-1][0]
     assert submit["callback_data"] == f"daysub:{days_to_mask([2,3,4,5,6])}"
-    assert submit["text"] == "送出設定"
+    assert submit["text"] == "保存設定"
 
 
 # ── 間隔設定（含確認訊息，回饋 1）──

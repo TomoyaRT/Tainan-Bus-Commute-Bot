@@ -61,12 +61,12 @@ def mask_to_days(mask: int) -> list[int]:
 
 
 def day_picker_keyboard(mask: int) -> dict:
-    """星期複選：已選以「【週X】」標示、未選為「週X」（不用表情符號）；
-    最後一列為外觀明顯不同的「送出設定」按鈕。"""
+    """星期複選：已選為「✅ 週X」、未選為「週X」（再點一下取消）；
+    最後一列為外觀明顯不同的「保存設定」按鈕。"""
     buttons = []
     for d in range(1, 8):
         selected = bool(mask & (1 << (d - 1)))
-        label = f"【{DAY_LABELS[d]}】" if selected else DAY_LABELS[d]
+        label = f"✅ {DAY_LABELS[d]}" if selected else DAY_LABELS[d]
         buttons.append({"text": label, "callback_data": f"day:{d}:{mask}"})
-    rows = [buttons[0:4], buttons[4:7], [{"text": "送出設定", "callback_data": f"daysub:{mask}"}]]
+    rows = [buttons[0:4], buttons[4:7], [{"text": "保存設定", "callback_data": f"daysub:{mask}"}]]
     return {"inline_keyboard": rows}

@@ -121,7 +121,7 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
                 user = await _ensure_user(store, chat_id)
                 await telegram.send_message(
                     chat_id,
-                    "選擇要推播的星期（點一下選取、再點一下取消），完成後按「送出設定」：",
+                    "選擇要推播的星期（點一下選取、再點一下取消），完成後按「保存設定」：",
                     day_picker_keyboard(days_to_mask(user.enabled_days)),
                 )
             elif what == "stops":
