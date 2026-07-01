@@ -18,14 +18,22 @@ def test_hhmm_to_minutes():
 def test_minutes_of_day():
     assert minutes_of_day(_at(8, 5)) == 485
 
-def test_in_window_inclusive_start_exclusive_end():
+def test_in_window_inclusive_both_ends():
     assert in_window(_at(8, 0), "08:00", "09:30") is True
     assert in_window(_at(9, 29), "08:00", "09:30") is True
-    assert in_window(_at(9, 30), "08:00", "09:30") is False
+    assert in_window(_at(9, 30), "08:00", "09:30") is True   # 含結束點：最後一則
+    assert in_window(_at(9, 31), "08:00", "09:30") is False  # 超過結束點才停
     assert in_window(_at(7, 59), "08:00", "09:30") is False
 
 def test_is_due_first_push_when_no_last():
     assert is_due(_at(8, 0), None, 10, "08:00") is True
+
+
+def test_is_due_first_push_aligns_to_grid():
+    # 冷啟/延遲在 08:03 才首跑（window 08:00 / interval 10）→ 非網格點，不推
+    assert is_due(_at(8, 3), None, 10, "08:00") is False
+    # 08:10 為網格點 → 首推
+    assert is_due(_at(8, 10), None, 10, "08:00") is True
 
 def test_is_due_respects_interval():
     last = _at(8, 0)

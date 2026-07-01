@@ -17,17 +17,19 @@ def minutes_of_day(now: datetime) -> int:
 
 def in_window(now: datetime, window_start: str, window_end: str) -> bool:
     current = minutes_of_day(now)
-    return hhmm_to_minutes(window_start) <= current < hhmm_to_minutes(window_end)
+    # 左閉右閉 [start, end]：結束時間那一分鐘（如 09:30、21:00）仍在窗內、仍會推最後一則
+    return hhmm_to_minutes(window_start) <= current <= hhmm_to_minutes(window_end)
 
 
 def is_due(now: datetime, last_push_at: datetime | None, interval_min: int, window_start: str) -> bool:
-    if last_push_at is None:
-        return True
     now_mins = now.hour * 60 + now.minute
     start_mins = hhmm_to_minutes(window_start)
     minutes_since_start = now_mins - start_mins
     if minutes_since_start < 0:
         return False
     last_grid_mins = start_mins + (minutes_since_start // interval_min) * interval_min
+    if last_push_at is None:
+        # 當日首推也只在網格點觸發，避免冷啟/延遲造成 off-grid 首推
+        return now_mins == last_grid_mins
     grid_time = now.replace(hour=last_grid_mins // 60, minute=last_grid_mins % 60, second=0, microsecond=0)
     return last_push_at < grid_time

@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from app.models import UserSettings
 from app.store import InMemoryStore
-from app.keyboards import days_to_mask, BTN_PUSH_NOW, BTN_SETTINGS, BTN_MANUAL
+from app.keyboards import days_to_mask, BTN_PUSH_NOW, BTN_SETTINGS, BTN_BOARDING
 from app.webhook import handle_update
 
 TPE = ZoneInfo("Asia/Taipei")
@@ -62,14 +62,37 @@ async def test_start_creates_user_and_shows_persistent_keyboard():
     assert await store.get_user(1) is not None
     kb = tg.sent[0][2]
     assert kb["is_persistent"] is True
-    assert [b["text"] for b in kb["keyboard"][0]] == [BTN_PUSH_NOW, BTN_SETTINGS]
+    assert [b["text"] for b in kb["keyboard"][0]] == [BTN_PUSH_NOW, BTN_BOARDING, BTN_SETTINGS]
 
 
-async def test_manual_button_shows_instructions():
+async def test_boarding_button_shows_stop_url_buttons():
     store, tg = InMemoryStore(), FakeTelegram()
     await store.save_user(UserSettings.default(1))
-    await handle_update(_msg(BTN_MANUAL), store, tg, NOW)
+    await handle_update(_msg(BTN_BOARDING), store, tg, NOW)
+    assert "請問您要上車的公車站是？" in tg.sent[0][1]
+    rows = tg.sent[0][2]["inline_keyboard"]
+    assert [r[0]["text"] for r in rows] == ["台南高工", "中華西路二段"]  # 上班在上、下班在下
+    assert all(b["url"].startswith("https://qrcode2384.tainan.gov.tw") for r in rows for b in r)
+
+
+async def test_manual_shown_via_info_menu_callback():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("menu:manual"), store, tg, NOW)
     assert "台南公車通勤機器人 - 使用說明書" in tg.sent[0][1]
+
+
+async def test_manual_reflects_configured_window_and_interval():
+    store, tg = InMemoryStore(), FakeTelegram()
+    user = UserSettings.default(1)
+    user.slots["morning"].window_start = "07:30"
+    user.slots["morning"].window_end = "10:00"
+    user.slots["morning"].default_interval = 20
+    await store.save_user(user)
+    await handle_update(_cb("menu:manual"), store, tg, NOW)
+    body = tg.sent[0][1]
+    assert "07:30 - 10:00 (預設 20 分鐘推播一次)" in body  # 動態反映設定
+    assert "公車站與時段" in body  # 選單名稱已更新
 
 
 async def test_settings_button_opens_menu():
@@ -94,14 +117,6 @@ async def test_menu_info_menu_edits_markup():
     await handle_update(_cb("menu:info_menu"), store, tg, NOW)
     assert len(tg.edits) == 1
     assert tg.edits[0][2]["inline_keyboard"][0][0]["callback_data"] == "menu:stops"
-
-
-async def test_menu_main_returns_to_main_menu():
-    store, tg = InMemoryStore(), FakeTelegram()
-    await store.save_user(UserSettings.default(1))
-    await handle_update(_cb("menu:main"), store, tg, NOW)
-    assert len(tg.edits) == 1
-    assert tg.edits[0][2]["inline_keyboard"][0][0]["callback_data"] == "menu:modify_menu"
 
 
 async def test_menu_window_callback_shows_slot_choice():
@@ -159,6 +174,16 @@ async def test_menu_stops_shows_readonly_text():
     await handle_update(_cb("menu:stops"), store, tg, NOW)
     assert "臺南高工" in tg.sent[0][1]
     assert "中華西路二段" in tg.sent[0][1]
+
+
+async def test_menu_stops_reflects_configured_window():
+    store, tg = InMemoryStore(), FakeTelegram()
+    user = UserSettings.default(1)
+    user.slots["morning"].window_start = "07:30"
+    user.slots["morning"].window_end = "10:00"
+    await store.save_user(user)
+    await handle_update(_cb("menu:stops"), store, tg, NOW)
+    assert "07:30 - 10:00" in tg.sent[0][1]  # 顯示實際設定，非寫死值
 
 
 async def test_menu_days_shows_picker_with_current():
@@ -241,6 +266,7 @@ async def test_push_now_sends_both_stops_with_single_tdx_call():
     assert tdx.calls == 1  # 兩時段同 RouteName "70"，只打一次
     body = tg.sent[0][1]
     assert "臺南高工" in body and "中華西路二段" in body
+    assert "🌅 上班" in body and "🌃 下班" in body  # 有時段標頭
 
 
 async def test_push_now_cooldown_blocks_repeat_then_recovers():

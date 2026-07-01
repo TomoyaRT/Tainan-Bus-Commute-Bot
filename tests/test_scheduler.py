@@ -48,7 +48,8 @@ def test_active_slot_picks_window():
     assert active_slot(_tue(8, 0), u) == "morning"
     assert active_slot(_tue(18, 45), u) == "evening"
     assert active_slot(_tue(12, 0), u) is None
-    assert active_slot(_tue(9, 30), u) is None  # 窗口結束，自動停
+    assert active_slot(_tue(9, 30), u) == "morning"  # 含結束點：09:30 仍推最後一則
+    assert active_slot(_tue(9, 31), u) is None       # 超過 09:30 才停
 
 
 async def test_first_push_sends_and_records_lastpush():

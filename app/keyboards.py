@@ -8,7 +8,7 @@ SLOT_LABELS = {"morning": "上班", "evening": "下班"}
 # 底部常駐鍵盤的按鈕文字（同時作為 webhook 訊息路由的 key）
 BTN_PUSH_NOW = "立即推播"
 BTN_SETTINGS = "控制台"
-BTN_MANUAL = "說明書"
+BTN_BOARDING = "我要上車"
 
 
 def push_inline_keyboard(slot: str) -> dict:
@@ -26,11 +26,21 @@ def interval_picker_keyboard(scope: str, slot: str) -> dict:
 
 
 def settings_reply_keyboard() -> dict:
-    """底部常駐鍵盤：立即推播、設定。"""
+    """底部常駐鍵盤：立即推播、我要上車、控制台。"""
     return {
-        "keyboard": [[{"text": BTN_PUSH_NOW}, {"text": BTN_SETTINGS}]],
+        "keyboard": [[{"text": BTN_PUSH_NOW}, {"text": BTN_BOARDING}, {"text": BTN_SETTINGS}]],
         "resize_keyboard": True,
         "is_persistent": True,
+    }
+
+
+def boarding_stop_keyboard() -> dict:
+    """我要上車：提供對應預約上車網址的 Inline 按鈕。"""
+    return {
+        "inline_keyboard": [
+            [{"text": "台南高工", "url": "https://qrcode2384.tainan.gov.tw/QRCode/rsvStop.html?code=0551"}],
+            [{"text": "中華西路二段", "url": "https://qrcode2384.tainan.gov.tw/QRCode/rsvStop.html?code=1046&fw=no"}],
+        ]
     }
 
 
@@ -50,8 +60,7 @@ def modify_settings_keyboard() -> dict:
         "inline_keyboard": [
             [{"text": "推播間隔", "callback_data": "menu:interval"},
              {"text": "推播日", "callback_data": "menu:days"},
-             {"text": "推播時段", "callback_data": "menu:window"}],
-            [{"text": "⬅️ 返回", "callback_data": "menu:main"}]
+             {"text": "推播時段", "callback_data": "menu:window"}]
         ]
     }
 
@@ -61,8 +70,7 @@ def info_settings_keyboard() -> dict:
     return {
         "inline_keyboard": [
             [{"text": "公車站與時段", "callback_data": "menu:stops"},
-             {"text": "說明書", "callback_data": "menu:manual"}],
-            [{"text": "⬅️ 返回", "callback_data": "menu:main"}]
+             {"text": "說明書", "callback_data": "menu:manual"}]
         ]
     }
 
@@ -72,8 +80,7 @@ def slot_window_choice_keyboard() -> dict:
     return {
         "inline_keyboard": [
             [{"text": "上班時段", "callback_data": "slotwin:morning"},
-             {"text": "下班時段", "callback_data": "slotwin:evening"}],
-            [{"text": "⬅️ 返回", "callback_data": "menu:modify_menu"}]
+             {"text": "下班時段", "callback_data": "slotwin:evening"}]
         ]
     }
 
@@ -108,9 +115,6 @@ def window_picker_keyboard(slot: str, current_start: str, current_end: str) -> d
     
     keyboard.append([
         {"text": "⏰ 保存時段設定", "callback_data": f"winsub:{slot}:{current_start}:{current_end}"}
-    ])
-    keyboard.append([
-        {"text": "⬅️ 返回", "callback_data": "menu:window"}
     ])
     
     return {"inline_keyboard": keyboard}

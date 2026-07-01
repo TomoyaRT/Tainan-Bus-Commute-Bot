@@ -4,16 +4,17 @@ from datetime import datetime, timedelta
 
 from app.formatting import API_ERROR_TEXT, format_eta_message
 from app.keyboards import (
-    BTN_PUSH_NOW, BTN_SETTINGS, BTN_MANUAL, DAY_LABELS, SLOT_LABELS,
+    BTN_PUSH_NOW, BTN_SETTINGS, BTN_BOARDING, DAY_LABELS, SLOT_LABELS,
     day_picker_keyboard, days_to_mask, interval_picker_keyboard,
     mask_to_days, settings_main_keyboard, modify_settings_keyboard,
     info_settings_keyboard, settings_reply_keyboard, slot_choice_keyboard,
-    slot_window_choice_keyboard, window_picker_keyboard,
+    slot_window_choice_keyboard, window_picker_keyboard, boarding_stop_keyboard,
 )
 from app.models import UserSettings
 from app.tdx import TDXError, select_stop
 
 MANUAL_PUSH_COOLDOWN = timedelta(minutes=5)
+MANUAL_SLOT_HEADERS = {"morning": "🌅 上班", "evening": "🌃 下班"}
 
 
 async def handle_update(update: dict, store, telegram, now: datetime, tdx=None, city: str = "Tainan") -> None:
@@ -38,10 +39,36 @@ def _bus_stop_text(user: UserSettings) -> str:
         "📌 目前推播公車站與時段：\n\n"
         f"🌅 上班通勤\n"
         f"• 公車站：{m.bus}（{m.stop_name}）\n"
-        f"• 🕒 推播時段：08:00 - 09:30\n\n"
+        f"• 🕒 推播時段：{m.window_start} - {m.window_end}\n\n"
         f"🌃 下班通勤\n"
         f"• 公車站：{e.bus}（{e.stop_name}）\n"
-        f"• 🕒 推播時段：18:30 - 21:00"
+        f"• 🕒 推播時段：{e.window_start} - {e.window_end}"
+    )
+
+
+def _manual_text(user: UserSettings) -> str:
+    m = user.slots["morning"]
+    e = user.slots["evening"]
+    return (
+        "📖 台南公車通勤機器人 - 使用說明書\n\n"
+        "這是專為台南通勤族設計的公車到站自動通知機器人。\n\n"
+        "💡 核心功能介紹：\n"
+        "1. ⏰ 每日定時推播 (自動)\n"
+        "   • 機器人會在您設定的推播日與通勤時段內，每隔固定時間主動發送公車到站資訊。\n"
+        f"   • 上班時段：{m.window_start} - {m.window_end} (預設 {m.default_interval} 分鐘推播一次)\n"
+        f"   • 下班時段：{e.window_start} - {e.window_end} (預設 {e.default_interval} 分鐘推播一次)\n"
+        "   • 點擊推播訊息下方的「停止推播」，可暫停今日剩餘的自動通知，隔日會自動恢復。\n\n"
+        "2. 🚀 立即推播 (手動)\n"
+        "   • 點擊底部「立即推播」按鈕，即可查詢目前上班與下班時段的最新公車到站時間。\n"
+        "   • 設有 5 分鐘冷卻時間防止重複查詢。\n\n"
+        "3. ⚙️ 設定選單\n"
+        "   • 點擊底部「控制台」按鈕：\n"
+        "     - 推播間隔：修改上班/下班時段的每日預設通知頻率。\n"
+        "     - 推播日：勾選啟用推播的星期（週一至週五）。\n"
+        "     - 推播時段：自訂上班與下班開始與結束的通知區間。\n"
+        f"     - 公車站與時段：查看目前追蹤的路線與站牌（目前為 {m.bus}「{m.stop_name}」與 {e.bus}「{e.stop_name}」）。\n\n"
+        "💡 提示：\n"
+        "第一次使用？您不需要進行任何設定，機器人已為您配置好預設路線，只需保持關注即可！"
     )
 
 
@@ -73,16 +100,17 @@ async def _manual_push(chat_id: int, store, telegram, now: datetime, tdx, city: 
 
     try:
         cache: dict[str, list] = {}
-        lines = []
+        blocks = []
         for name in ("morning", "evening"):
             cfg = user.slots[name]
             if cfg.route not in cache:
                 cache[cfg.route] = await tdx.get_eta(city, cfg.route, now)
             match = select_stop(cache[cfg.route], cfg.stop_name, cfg.sub_route)
             if match is None:
-                lines.append(f"{cfg.bus}｜{cfg.stop_name}：查無資料")
+                body = f"{cfg.bus}｜{cfg.stop_name}：查無資料"
             else:
-                lines.append(format_eta_message(cfg, int(match.get("StopStatus", 0)), match.get("EstimateTime")))
+                body = format_eta_message(cfg, int(match.get("StopStatus", 0)), match.get("EstimateTime"))
+            blocks.append(f"{MANUAL_SLOT_HEADERS[name]}\n{body}")
     except TDXError as exc:
         if exc.status_code in (403, 429):
             await telegram.send_message(chat_id, "⚠️ TDX 公車 API 額度已用完，無法取得正確資訊。")
@@ -90,7 +118,7 @@ async def _manual_push(chat_id: int, store, telegram, now: datetime, tdx, city: 
             await telegram.send_message(chat_id, API_ERROR_TEXT)
         return
 
-    await telegram.send_message(chat_id, "\n".join(lines))
+    await telegram.send_message(chat_id, "\n\n".join(blocks))
 
 
 async def _handle_message(message: dict, store, telegram, now: datetime, tdx, city: str) -> None:
@@ -105,31 +133,10 @@ async def _handle_message(message: dict, store, telegram, now: datetime, tdx, ci
         )
     elif text == BTN_PUSH_NOW:
         await _manual_push(chat_id, store, telegram, now, tdx, city)
+    elif text == BTN_BOARDING:
+        await telegram.send_message(chat_id, "請問您要上車的公車站是？", boarding_stop_keyboard())
     elif text == BTN_SETTINGS:
         await telegram.send_message(chat_id, "請選擇操作項目：", settings_main_keyboard())
-    elif text == BTN_MANUAL:
-        manual_text = (
-            "📖 台南公車通勤機器人 - 使用說明書\n\n"
-            "這是專為台南通勤族設計的公車到站自動通知機器人。\n\n"
-            "💡 核心功能介紹：\n"
-            "1. ⏰ 每日定時推播 (自動)\n"
-            "   • 機器人會在您設定的推播日與通勤時段內，每隔固定時間主動發送公車到站資訊。\n"
-            "   • 上班時段：08:00 - 09:30 (預設 10 分鐘推播一次)\n"
-            "   • 下班時段：18:30 - 21:00 (預設 5 分鐘推播一次)\n"
-            "   • 點擊推播訊息下方的「停止推播」，可暫停今日剩餘的自動通知，隔日會自動恢復。\n\n"
-            "2. 🚀 立即推播 (手動)\n"
-            "   • 點擊底部「立即推播」按鈕，即可查詢目前上班與下班時段的最新公車到站時間。\n"
-            "   • 設有 5 分鐘冷卻時間防止重複查詢。\n\n"
-            "3. ⚙️ 設定選單\n"
-            "   • 點擊底部「控制台」按鈕：\n"
-            "     - 推播間隔：修改上班/下班時段的每日預設通知頻率。\n"
-            "     - 推播日：勾選啟用推播的星期（週一至週五）。\n"
-            "     - 推播時段：自訂上班與下班開始與結束的通知區間。\n"
-            "     - 推播公車站：查看目前追蹤的路線與站牌（預設為 70左/70右「中華西路二段」）。\n\n"
-            "💡 提示：\n"
-            "第一次使用？您不需要進行任何設定，機器人已為您配置好預設路線，只需保持關注即可！"
-        )
-        await telegram.send_message(chat_id, manual_text)
 
 
 async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
@@ -149,9 +156,7 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
         if kind == "menu":
             what = parts[1]
             await telegram.answer_callback_query(cb_id)
-            if what == "main":
-                await telegram.edit_message_reply_markup(chat_id, message_id, settings_main_keyboard())
-            elif what == "modify_menu":
+            if what == "modify_menu":
                 await telegram.edit_message_reply_markup(chat_id, message_id, modify_settings_keyboard())
             elif what == "info_menu":
                 await telegram.edit_message_reply_markup(chat_id, message_id, info_settings_keyboard())
@@ -170,28 +175,8 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
                 user = await _ensure_user(store, chat_id)
                 await telegram.send_message(chat_id, _bus_stop_text(user))
             elif what == "manual":
-                manual_text = (
-                    "📖 台南公車通勤機器人 - 使用說明書\n\n"
-                    "這是專為台南通勤族設計的公車到站自動通知機器人。\n\n"
-                    "💡 核心功能介紹：\n"
-                    "1. ⏰ 每日定時推播 (自動)\n"
-                    "   • 機器人會在您設定的推播日與通勤時段內，每隔固定時間主動發送公車到站資訊。\n"
-                    "   • 上班時段：08:00 - 09:30 (預設 10 分鐘推播一次)\n"
-                    "   • 下班時段：18:30 - 21:00 (預設 5 分鐘推播一次)\n"
-                    "   • 點擊推播訊息下方的「停止推播」，可暫停今日剩餘的自動通知，隔日會自動恢復。\n\n"
-                    "2. 🚀 立即推播 (手動)\n"
-                    "   • 點擊底部「立即推播」按鈕，即可查詢目前上班與下班時段的最新公車到站時間。\n"
-                    "   • 設有 5 分鐘冷卻時間防止重複查詢。\n\n"
-                    "3. ⚙️ 設定選單\n"
-                    "   • 點擊底部「控制台」按鈕：\n"
-                    "     - 推播間隔：修改上班/下班時段的每日預設通知頻率。\n"
-                    "     - 推播日：勾選啟用推播的星期（週一至週五）。\n"
-                    "     - 推播時段：自訂上班與下班開始與結束的通知區間。\n"
-                    "     - 推播公車站：查看目前追蹤的路線與站牌（預設為 70左/70右「中華西路二段」）。\n\n"
-                    "💡 提示：\n"
-                    "第一次使用？您不需要進行任何設定，機器人已為您配置好預設路線，只需保持關注即可！"
-                )
-                await telegram.send_message(chat_id, manual_text)
+                user = await _ensure_user(store, chat_id)
+                await telegram.send_message(chat_id, _manual_text(user))
 
         elif kind == "stop":
             slot = parts[1]
