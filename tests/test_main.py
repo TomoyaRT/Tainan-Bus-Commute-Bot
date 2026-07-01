@@ -59,7 +59,7 @@ def test_tick_rejects_bad_token(client):
 def test_tick_pushes_to_seeded_user(client):
     c, store, tg = client
     import asyncio
-    asyncio.get_event_loop().run_until_complete(store.save_user(UserSettings.default(1)))
+    asyncio.run(store.save_user(UserSettings.default(1)))
     resp = c.post("/tick", headers={"X-Tick-Token": "ticksecret"})
     assert resp.status_code == 200
     assert tg.sent and tg.sent[0][0] == 1

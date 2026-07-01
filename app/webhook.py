@@ -70,52 +70,64 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
     kind = parts[0]
     date_str = now.strftime("%Y-%m-%d")
 
-    if kind == "stop":
-        slot = parts[1]
-        runtime = await store.get_runtime(chat_id, date_str)
-        runtime.slot(slot).stopped = True
-        await store.save_runtime(chat_id, date_str, runtime)
-        await telegram.answer_callback_query(cb_id, f"已停止今日{SLOT_LABELS[slot]}推播")
-
-    elif kind == "interval":
-        slot = parts[1]
-        await telegram.answer_callback_query(cb_id)
-        await telegram.send_message(
-            chat_id, f"設定今日{SLOT_LABELS[slot]}剩餘推播間隔：",
-            interval_picker_keyboard("today", slot),
-        )
-
-    elif kind == "setint":
-        scope, slot, val = parts[1], parts[2], int(parts[3])
-        if scope == "today":
+    try:
+        if kind == "stop":
+            slot = parts[1]
             runtime = await store.get_runtime(chat_id, date_str)
-            runtime.slot(slot).interval_override = val
+            runtime.slot(slot).stopped = True
             await store.save_runtime(chat_id, date_str, runtime)
-            await telegram.answer_callback_query(cb_id, f"今日{SLOT_LABELS[slot]}間隔改為{val}分")
-        else:
-            user = await _ensure_user(store, chat_id)
-            user.slots[slot].default_interval = val
-            await store.save_user(user)
-            await telegram.answer_callback_query(cb_id, f"{SLOT_LABELS[slot]}每日間隔改為{val}分")
+            await telegram.answer_callback_query(cb_id, f"已停止今日{SLOT_LABELS[slot]}推播")
 
-    elif kind == "slotpick":
-        action, slot = parts[1], parts[2]
-        if action == "defint":
+        elif kind == "interval":
+            slot = parts[1]
             await telegram.answer_callback_query(cb_id)
             await telegram.send_message(
-                chat_id, f"設定{SLOT_LABELS[slot]}每日預設間隔：",
-                interval_picker_keyboard("default", slot),
+                chat_id, f"設定今日{SLOT_LABELS[slot]}剩餘推播間隔：",
+                interval_picker_keyboard("today", slot),
             )
 
-    elif kind == "day":
-        d, mask = int(parts[1]), int(parts[2])
-        new_mask = mask ^ (1 << (d - 1))
-        await telegram.edit_message_reply_markup(chat_id, message_id, day_picker_keyboard(new_mask))
-        await telegram.answer_callback_query(cb_id)
+        elif kind == "setint":
+            scope, slot, val = parts[1], parts[2], int(parts[3])
+            if scope == "today":
+                runtime = await store.get_runtime(chat_id, date_str)
+                runtime.slot(slot).interval_override = val
+                await store.save_runtime(chat_id, date_str, runtime)
+                await telegram.answer_callback_query(cb_id, f"今日{SLOT_LABELS[slot]}間隔改為{val}分")
+            else:
+                user = await _ensure_user(store, chat_id)
+                user.slots[slot].default_interval = val
+                await store.save_user(user)
+                await telegram.answer_callback_query(cb_id, f"{SLOT_LABELS[slot]}每日間隔改為{val}分")
 
-    elif kind == "daysub":
-        mask = int(parts[1])
-        user = await _ensure_user(store, chat_id)
-        user.enabled_days = mask_to_days(mask)
-        await store.save_user(user)
-        await telegram.answer_callback_query(cb_id, "已更新推播日")
+        elif kind == "slotpick":
+            action, slot = parts[1], parts[2]
+            if action == "defint":
+                await telegram.answer_callback_query(cb_id)
+                await telegram.send_message(
+                    chat_id, f"設定{SLOT_LABELS[slot]}每日預設間隔：",
+                    interval_picker_keyboard("default", slot),
+                )
+            else:
+                await telegram.answer_callback_query(cb_id)
+
+        elif kind == "day":
+            d, mask = int(parts[1]), int(parts[2])
+            new_mask = mask ^ (1 << (d - 1))
+            await telegram.edit_message_reply_markup(chat_id, message_id, day_picker_keyboard(new_mask))
+            await telegram.answer_callback_query(cb_id)
+
+        elif kind == "daysub":
+            mask = int(parts[1])
+            user = await _ensure_user(store, chat_id)
+            user.enabled_days = mask_to_days(mask)
+            await store.save_user(user)
+            await telegram.answer_callback_query(cb_id, "已更新推播日")
+
+        else:
+            # 未知類型（多半是改版後殘留的舊按鈕）→ 仍回應以停止載入圈
+            await telegram.answer_callback_query(cb_id)
+
+    except (ValueError, IndexError, KeyError):
+        # callback_data 格式損壞/過期（例如舊按鈕、非法 slot 名）→ 回應以停止載入圈，
+        # 不讓例外冒泡使 /webhook 回 500，避免 Telegram 重試風暴。
+        await telegram.answer_callback_query(cb_id)

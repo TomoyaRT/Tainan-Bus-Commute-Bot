@@ -115,3 +115,18 @@ async def test_daysub_persists_enabled_days():
     u = await store.get_user(1)
     assert u.enabled_days == [1, 2, 3]
     assert tg.answers[0][1] == "已更新推播日"
+
+
+async def test_malformed_callback_does_not_raise_and_answers():
+    # 壞掉/過期的 callback_data（間隔值非數字）不應拋例外造成 webhook 500
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("setint:today:morning:abc"), store, tg, NOW)
+    assert tg.answers and tg.answers[0][0] == "cb"  # 仍回應以停止載入圈
+
+
+async def test_unknown_callback_kind_is_answered():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("bogus:x"), store, tg, NOW)
+    assert tg.answers == [("cb", None)]
