@@ -48,4 +48,4 @@ def test_day_picker_marks_selected_and_carries_mask():
     assert mon["text"] == "週一"       # 未選
     submit = flat[-1]
     assert submit["callback_data"] == f"daysub:{mask}"
-    assert submit["text"] == "保存設定"  # 保存按鈕外觀明顯不同
+    assert submit["text"] == "⏰ 保存設定"  # 保存按鈕外觀明顯不同

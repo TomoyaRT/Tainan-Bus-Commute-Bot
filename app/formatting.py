@@ -4,7 +4,7 @@ from math import ceil
 
 from app.models import SlotConfig
 
-API_ERROR_TEXT = "⚠️ 政府API出狀況，暫時無法取得正確的資訊。"
+API_ERROR_TEXT = "⚠️ 政府系統異常，無法取得正確的資訊，請稍後再試。"
 NEAR_ARRIVAL_SECONDS = 60
 
 

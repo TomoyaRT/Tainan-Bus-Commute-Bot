@@ -184,5 +184,5 @@ async def test_quota_exhausted_consecutive_failure_pushes_quota_error():
     await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
     # 第二次失敗（推額度用完警告）
     await process_user(_tue(8, 10), await store.get_user(1), store, tdx, tg, "Tainan")
-    assert tg.sent == [(1, "⚠️ TDX公車API額度用完，因此無法取得正確的資訊。", None)]
+    assert tg.sent == [(1, "⚠️ TDX 公車 API 額度已用完，無法取得正確資訊。", None)]
 

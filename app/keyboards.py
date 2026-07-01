@@ -68,5 +68,5 @@ def day_picker_keyboard(mask: int) -> dict:
         selected = bool(mask & (1 << (d - 1)))
         label = f"✅ {DAY_LABELS[d]}" if selected else DAY_LABELS[d]
         buttons.append({"text": label, "callback_data": f"day:{d}:{mask}"})
-    rows = [buttons[0:4], buttons[4:7], [{"text": "保存設定", "callback_data": f"daysub:{mask}"}]]
+    rows = [buttons[0:4], buttons[4:7], [{"text": "⏰ 保存設定", "callback_data": f"daysub:{mask}"}]]
     return {"inline_keyboard": rows}

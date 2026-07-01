@@ -53,7 +53,7 @@ async def process_user(now, settings, store, tdx, telegram, city) -> None:
         sr.fail_count += 1
         if sr.fail_count >= FAIL_THRESHOLD:
             if exc.status_code in (403, 429):
-                await telegram.send_message(settings.chat_id, "⚠️ TDX公車API額度用完，因此無法取得正確的資訊。")
+                await telegram.send_message(settings.chat_id, "⚠️ TDX 公車 API 額度已用完，無法取得正確資訊。")
             else:
                 await telegram.send_message(settings.chat_id, API_ERROR_TEXT)
             sr.stopped = True

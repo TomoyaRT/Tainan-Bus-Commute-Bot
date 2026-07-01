@@ -97,7 +97,7 @@ async def test_menu_days_shows_picker_with_current():
     await handle_update(_cb("menu:days"), store, tg, NOW)
     submit = tg.sent[0][2]["inline_keyboard"][-1][0]
     assert submit["callback_data"] == f"daysub:{days_to_mask([2,3,4,5,6])}"
-    assert submit["text"] == "保存設定"
+    assert submit["text"] == "⏰ 保存設定"
 
 
 # ── 間隔設定（含確認訊息，回饋 1）──
@@ -213,5 +213,5 @@ async def test_push_now_quota_exhausted_sends_quota_error():
             raise TDXError("quota", status_code=429)
 
     await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW, QuotaFailingTDX(), "Tainan")
-    assert tg.sent[-1][1] == "⚠️ TDX公車API額度用完，因此無法取得正確的資訊。"
+    assert tg.sent[-1][1] == "⚠️ TDX 公車 API 額度已用完，無法取得正確資訊。"
 

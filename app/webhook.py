@@ -79,7 +79,7 @@ async def _manual_push(chat_id: int, store, telegram, now: datetime, tdx, city: 
                 lines.append(format_eta_message(cfg, int(match.get("StopStatus", 0)), match.get("EstimateTime")))
     except TDXError as exc:
         if exc.status_code in (403, 429):
-            await telegram.send_message(chat_id, "⚠️ TDX公車API額度用完，因此無法取得正確的資訊。")
+            await telegram.send_message(chat_id, "⚠️ TDX 公車 API 額度已用完，無法取得正確資訊。")
         else:
             await telegram.send_message(chat_id, API_ERROR_TEXT)
         return
@@ -94,8 +94,7 @@ async def _handle_message(message: dict, store, telegram, now: datetime, tdx, ci
         await _ensure_user(store, chat_id)
         await telegram.send_message(
             chat_id,
-            "歡迎！已開啟 70左/70右 到站通知。\n"
-            "點「立即推播」即時查到站，點「設定」調整推播間隔／時間／公車站。",
+            "歡迎使用台南公車通勤機器人～\n我會在工作日期間通知您公車的時間！",
             settings_reply_keyboard(),
         )
     elif text == BTN_PUSH_NOW:
@@ -186,7 +185,7 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
                 names = "、".join(DAY_LABELS[d] for d in user.enabled_days)
                 await telegram.send_message(chat_id, f"已更新推播日為：{names}。")
             else:
-                await telegram.send_message(chat_id, "已清空推播日，目前不會推播。")
+                await telegram.send_message(chat_id, "無選擇任何推播日，便不再進行推播。")
 
         else:
             # 未知類型（多半是改版後殘留的舊按鈕）→ 仍回應以停止載入圈
