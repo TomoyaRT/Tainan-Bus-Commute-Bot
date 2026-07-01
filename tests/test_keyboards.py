@@ -1,6 +1,7 @@
 from app.keyboards import (
     push_inline_keyboard, interval_picker_keyboard, settings_reply_keyboard,
     settings_main_keyboard, modify_settings_keyboard, info_settings_keyboard,
+    slot_window_choice_keyboard, window_picker_keyboard,
     slot_choice_keyboard, day_picker_keyboard,
     days_to_mask, mask_to_days, BTN_PUSH_NOW, BTN_SETTINGS,
 )
@@ -31,13 +32,24 @@ def test_settings_menu_keyboards():
 
     kb_modify = modify_settings_keyboard()
     datas_modify = [b["callback_data"] for b in kb_modify["inline_keyboard"][0]]
-    assert datas_modify == ["menu:interval", "menu:days"]
+    assert datas_modify == ["menu:interval", "menu:days", "menu:window"]
+    assert kb_modify["inline_keyboard"][0][1]["text"] == "推播星期"
     assert kb_modify["inline_keyboard"][1][0]["callback_data"] == "menu:main"
 
     kb_info = info_settings_keyboard()
     datas_info = [b["callback_data"] for b in kb_info["inline_keyboard"][0]]
     assert datas_info == ["menu:stops", "menu:manual"]
     assert kb_info["inline_keyboard"][1][0]["callback_data"] == "menu:main"
+
+    kb_choice = slot_window_choice_keyboard()
+    assert kb_choice["inline_keyboard"][0][0]["callback_data"] == "slotwin:morning"
+    assert kb_choice["inline_keyboard"][1][0]["callback_data"] == "menu:modify_menu"
+
+    kb_picker = window_picker_keyboard("morning", "08:00", "09:30")
+    flat = [b for row in kb_picker["inline_keyboard"] for b in row]
+    assert any(b["text"] == "✅ 08:00" for b in flat)
+    assert any(b["text"] == "✅ 09:30" for b in flat)
+    assert any(b["callback_data"] == "winsub:morning:08:00:09:30" for b in flat)
 
 def test_slot_choice_keyboard_encodes_action():
     kb = slot_choice_keyboard("defint")

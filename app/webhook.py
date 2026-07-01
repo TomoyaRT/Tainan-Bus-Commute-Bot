@@ -8,6 +8,7 @@ from app.keyboards import (
     day_picker_keyboard, days_to_mask, interval_picker_keyboard,
     mask_to_days, settings_main_keyboard, modify_settings_keyboard,
     info_settings_keyboard, settings_reply_keyboard, slot_choice_keyboard,
+    slot_window_choice_keyboard, window_picker_keyboard,
 )
 from app.models import UserSettings
 from app.tdx import TDXError, select_stop
@@ -122,7 +123,8 @@ async def _handle_message(message: dict, store, telegram, now: datetime, tdx, ci
             "3. ⚙️ 設定選單\n"
             "   • 點擊底部「控制台」按鈕：\n"
             "     - 推播間隔：修改上班/下班時段的每日預設通知頻率。\n"
-            "     - 推播時間：勾選啟用推播的星期（週一至週日）。\n"
+            "     - 推播星期：勾選啟用推播的星期（週一至週五）。\n"
+            "     - 推播時段：自訂上班與下班開始與結束的通知區間。\n"
             "     - 推播公車站：查看目前追蹤的路線與站牌（預設為 70左/70右「中華西路二段」）。\n\n"
             "💡 提示：\n"
             "第一次使用？您不需要進行任何設定，機器人已為您配置好預設路線，只需保持關注即可！"
@@ -140,6 +142,10 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
     date_str = now.strftime("%Y-%m-%d")
 
     try:
+        if kind == "noop":
+            await telegram.answer_callback_query(cb_id)
+            return
+
         if kind == "menu":
             what = parts[1]
             await telegram.answer_callback_query(cb_id)
@@ -158,6 +164,8 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
                     "選擇要推播的星期（點一下選取、再點一下取消），完成後按「保存設定」：",
                     day_picker_keyboard(days_to_mask(user.enabled_days)),
                 )
+            elif what == "window":
+                await telegram.edit_message_reply_markup(chat_id, message_id, slot_window_choice_keyboard())
             elif what == "stops":
                 user = await _ensure_user(store, chat_id)
                 await telegram.send_message(chat_id, _bus_stop_text(user))
@@ -177,7 +185,8 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
                     "3. ⚙️ 設定選單\n"
                     "   • 點擊底部「控制台」按鈕：\n"
                     "     - 推播間隔：修改上班/下班時段的每日預設通知頻率。\n"
-                    "     - 推播時間：勾選啟用推播的星期（週一至週日）。\n"
+                    "     - 推播星期：勾選啟用推播的星期（週一至週五）。\n"
+                    "     - 推播時段：自訂上班與下班開始與結束的通知區間。\n"
                     "     - 推播公車站：查看目前追蹤的路線與站牌（預設為 70左/70右「中華西路二段」）。\n\n"
                     "💡 提示：\n"
                     "第一次使用？您不需要進行任何設定，機器人已為您配置好預設路線，只需保持關注即可！"
@@ -191,6 +200,37 @@ async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:
             await store.save_runtime(chat_id, date_str, runtime)
             await telegram.answer_callback_query(cb_id, f"已停止今日{SLOT_LABELS[slot]}推播")
             await telegram.send_message(chat_id, f"已停止今日{SLOT_LABELS[slot]}推播，明天會自動恢復。")
+
+        elif kind == "slotwin":
+            slot = parts[1]
+            user = await _ensure_user(store, chat_id)
+            cfg = user.slots[slot]
+            await telegram.answer_callback_query(cb_id)
+            await telegram.edit_message_reply_markup(
+                chat_id, message_id,
+                window_picker_keyboard(slot, cfg.window_start, cfg.window_end)
+            )
+
+        elif kind == "winopt":
+            slot = parts[1]
+            s = f"{parts[2]}:{parts[3]}"
+            e = f"{parts[4]}:{parts[5]}"
+            await telegram.answer_callback_query(cb_id)
+            await telegram.edit_message_reply_markup(
+                chat_id, message_id,
+                window_picker_keyboard(slot, s, e)
+            )
+
+        elif kind == "winsub":
+            slot = parts[1]
+            s = f"{parts[2]}:{parts[3]}"
+            e = f"{parts[4]}:{parts[5]}"
+            user = await _ensure_user(store, chat_id)
+            user.slots[slot].window_start = s
+            user.slots[slot].window_end = e
+            await store.save_user(user)
+            await telegram.answer_callback_query(cb_id, "設定已保存")
+            await telegram.send_message(chat_id, f"已更新{SLOT_LABELS[slot]}推播時段為：{s} - {e}")
 
         elif kind == "interval":
             slot = parts[1]

@@ -104,6 +104,45 @@ async def test_menu_main_returns_to_main_menu():
     assert tg.edits[0][2]["inline_keyboard"][0][0]["callback_data"] == "menu:modify_menu"
 
 
+async def test_menu_window_callback_shows_slot_choice():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("menu:window"), store, tg, NOW)
+    assert len(tg.edits) == 1
+    assert tg.edits[0][2]["inline_keyboard"][0][0]["callback_data"] == "slotwin:morning"
+
+
+async def test_slotwin_callback_shows_picker():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("slotwin:morning"), store, tg, NOW)
+    assert len(tg.edits) == 1
+    # Check start times
+    row_starts = tg.edits[0][2]["inline_keyboard"][1]
+    assert row_starts[2]["text"] == "✅ 08:00"  # Pre-selected start time
+
+
+async def test_winopt_callback_updates_selection():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("winopt:morning:07:30:09:30"), store, tg, NOW)
+    assert len(tg.edits) == 1
+    row_starts = tg.edits[0][2]["inline_keyboard"][1]
+    assert row_starts[1]["text"] == "✅ 07:30"
+
+
+async def test_winsub_callback_saves_and_confirms():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("winsub:morning:07:30:10:00"), store, tg, NOW)
+    user = await store.get_user(1)
+    assert user.slots["morning"].window_start == "07:30"
+    assert user.slots["morning"].window_end == "10:00"
+    assert len(tg.answers) == 1
+    assert tg.answers[0][1] == "設定已保存"
+    assert "已更新上班推播時段為：07:30 - 10:00" in tg.sent[0][1]
+
+
 # ── 設定選單各分支 ──
 
 async def test_menu_interval_asks_slot():
