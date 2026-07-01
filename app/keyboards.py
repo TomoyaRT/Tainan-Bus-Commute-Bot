@@ -40,7 +40,7 @@ def settings_menu_keyboard() -> dict:
         "inline_keyboard": [[
             {"text": "推播間隔", "callback_data": "menu:interval"},
             {"text": "推播時間", "callback_data": "menu:days"},
-            {"text": "推播公車站", "callback_data": "menu:stops"},
+            {"text": "公車站與時段", "callback_data": "menu:stops"},
         ]]
     }
 

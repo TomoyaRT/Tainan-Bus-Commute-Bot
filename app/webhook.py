@@ -33,9 +33,13 @@ def _bus_stop_text(user: UserSettings) -> str:
     m = user.slots["morning"]
     e = user.slots["evening"]
     return (
-        "目前推播公車站（預設）：\n"
-        f"上班：{m.bus}（{m.stop_name}）\n"
-        f"下班：{e.bus}（{e.stop_name}）"
+        "📌 目前推播公車站與時段：\n\n"
+        f"🌅 上班通勤\n"
+        f"• 公車站：{m.bus}（{m.stop_name}）\n"
+        f"• 🕒 推播時段：08:00 - 09:30\n\n"
+        f"🌃 下班通勤\n"
+        f"• 公車站：{e.bus}（{e.stop_name}）\n"
+        f"• 🕒 推播時段：18:30 - 21:00"
     )
 
 
