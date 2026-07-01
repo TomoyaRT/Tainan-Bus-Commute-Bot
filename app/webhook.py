@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from app.formatting import API_ERROR_TEXT, format_eta_message
 from app.keyboards import (
-    BTN_PUSH_NOW, BTN_SETTINGS, DAY_LABELS, SLOT_LABELS,
+    BTN_PUSH_NOW, BTN_SETTINGS, BTN_MANUAL, DAY_LABELS, SLOT_LABELS,
     day_picker_keyboard, days_to_mask, interval_picker_keyboard,
     mask_to_days, settings_menu_keyboard, settings_reply_keyboard, slot_choice_keyboard,
 )
@@ -101,6 +101,28 @@ async def _handle_message(message: dict, store, telegram, now: datetime, tdx, ci
         await _manual_push(chat_id, store, telegram, now, tdx, city)
     elif text == BTN_SETTINGS:
         await telegram.send_message(chat_id, "請選擇要設定的項目：", settings_menu_keyboard())
+    elif text == BTN_MANUAL:
+        manual_text = (
+            "📖 台南公車通勤機器人 - 使用說明書\n\n"
+            "這是專為台南通勤族設計的公車到站自動通知機器人。\n\n"
+            "💡 核心功能介紹：\n"
+            "1. ⏰ 每日定時推播 (自動)\n"
+            "   • 機器人會在您設定的推播日與通勤時段內，每隔固定時間主動發送公車到站資訊。\n"
+            "   • 上班時段：08:00 - 09:30 (預設 10 分鐘推播一次)\n"
+            "   • 下班時段：18:30 - 21:00 (預設 5 分鐘推播一次)\n"
+            "   • 點擊推播訊息下方的「停止推播」，可暫停今日剩餘的自動通知，隔日會自動恢復。\n\n"
+            "2. 🚀 立即推播 (手動)\n"
+            "   • 點擊底部「立即推播」按鈕，即可查詢目前上班與下班時段的最新公車到站時間。\n"
+            "   • 設有 5 分鐘冷卻時間防止重複查詢。\n\n"
+            "3. ⚙️ 設定選單\n"
+            "   • 點擊底部「設定」按鈕：\n"
+            "     - 推播間隔：修改上班/下班時段的每日預設通知頻率。\n"
+            "     - 推播時間：勾選啟用推播的星期（週一至週日）。\n"
+            "     - 推播公車站：查看目前追蹤的路線與站牌（預設為 70左/70右「中華西路二段」）。\n\n"
+            "💡 提示：\n"
+            "第一次使用？您不需要進行任何設定，機器人已為您配置好預設路線，只需保持關注即可！"
+        )
+        await telegram.send_message(chat_id, manual_text)
 
 
 async def _handle_callback(cb: dict, store, telegram, now: datetime) -> None:

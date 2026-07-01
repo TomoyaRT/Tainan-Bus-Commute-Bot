@@ -8,6 +8,7 @@ SLOT_LABELS = {"morning": "上班", "evening": "下班"}
 # 底部常駐鍵盤的按鈕文字（同時作為 webhook 訊息路由的 key）
 BTN_PUSH_NOW = "立即推播"
 BTN_SETTINGS = "設定"
+BTN_MANUAL = "說明書"
 
 
 def push_inline_keyboard(slot: str) -> dict:
@@ -25,9 +26,9 @@ def interval_picker_keyboard(scope: str, slot: str) -> dict:
 
 
 def settings_reply_keyboard() -> dict:
-    """底部常駐鍵盤：只放兩顆——立即推播、設定。"""
+    """底部常駐鍵盤：立即推播、設定、說明書。"""
     return {
-        "keyboard": [[{"text": BTN_PUSH_NOW}, {"text": BTN_SETTINGS}]],
+        "keyboard": [[{"text": BTN_PUSH_NOW}, {"text": BTN_SETTINGS}, {"text": BTN_MANUAL}]],
         "resize_keyboard": True,
         "is_persistent": True,
     }

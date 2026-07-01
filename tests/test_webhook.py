@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from app.models import UserSettings
 from app.store import InMemoryStore
-from app.keyboards import days_to_mask, BTN_PUSH_NOW, BTN_SETTINGS
+from app.keyboards import days_to_mask, BTN_PUSH_NOW, BTN_SETTINGS, BTN_MANUAL
 from app.webhook import handle_update
 
 TPE = ZoneInfo("Asia/Taipei")
@@ -62,7 +62,14 @@ async def test_start_creates_user_and_shows_persistent_keyboard():
     assert await store.get_user(1) is not None
     kb = tg.sent[0][2]
     assert kb["is_persistent"] is True
-    assert [b["text"] for b in kb["keyboard"][0]] == [BTN_PUSH_NOW, BTN_SETTINGS]
+    assert [b["text"] for b in kb["keyboard"][0]] == [BTN_PUSH_NOW, BTN_SETTINGS, BTN_MANUAL]
+
+
+async def test_manual_button_shows_instructions():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_msg(BTN_MANUAL), store, tg, NOW)
+    assert "台南公車通勤機器人 - 使用說明書" in tg.sent[0][1]
 
 
 async def test_settings_button_opens_menu():

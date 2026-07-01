@@ -1,7 +1,7 @@
 from app.keyboards import (
     push_inline_keyboard, interval_picker_keyboard, settings_reply_keyboard,
     settings_menu_keyboard, slot_choice_keyboard, day_picker_keyboard,
-    days_to_mask, mask_to_days, BTN_PUSH_NOW, BTN_SETTINGS,
+    days_to_mask, mask_to_days, BTN_PUSH_NOW, BTN_SETTINGS, BTN_MANUAL,
 )
 
 def test_push_inline_keyboard_has_stop_and_interval():
@@ -20,7 +20,7 @@ def test_settings_reply_keyboard_is_persistent():
     kb = settings_reply_keyboard()
     assert kb["is_persistent"] is True
     labels = [b["text"] for b in kb["keyboard"][0]]
-    assert labels == [BTN_PUSH_NOW, BTN_SETTINGS]  # 精簡為兩顆：立即推播、設定
+    assert labels == [BTN_PUSH_NOW, BTN_SETTINGS, BTN_MANUAL]  # 精簡為兩顆：立即推播、設定
 
 
 def test_settings_menu_lists_three_functions():
