@@ -43,7 +43,9 @@ def client(monkeypatch):
 
     store = InMemoryStore()
     tg = FakeTelegram()
-    tdx = FakeTDX([{"StopName": {"Zh_tw": "台南高工"}, "StopStatus": 0, "EstimateTime": 300}])
+    tdx = FakeTDX([{"StopName": {"Zh_tw": "臺南高工"},
+                    "SubRouteName": {"Zh_tw": "70左 永華市政中心 → 永華市政中心"},
+                    "StopStatus": 0, "EstimateTime": 300}])
     monkeypatch.setattr(main, "build_runtime", lambda: (store, tdx, tg))
     # 固定 now 在週二上班窗口
     monkeypatch.setattr(main, "current_now", lambda: datetime(2026, 6, 30, 8, 0, tzinfo=TPE))

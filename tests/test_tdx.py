@@ -34,15 +34,29 @@ def test_select_stop_handles_plain_string_and_missing():
     assert select_stop(entries, "不存在") is None
 
 
-def test_select_stop_direction_filter_and_ambiguity():
+def test_select_stop_disambiguates_by_sub_route():
+    # 環狀 70：同站名在 70左/70右 都出現，靠 SubRouteName 前綴消歧
     entries = [
-        {"StopName": {"Zh_tw": "台南高工"}, "Direction": 0, "EstimateTime": 300},
-        {"StopName": {"Zh_tw": "台南高工"}, "Direction": 1, "EstimateTime": 60},
+        {"StopName": {"Zh_tw": "臺南高工"}, "SubRouteName": {"Zh_tw": "70左 …"}, "EstimateTime": 1700},
+        {"StopName": {"Zh_tw": "臺南高工"}, "SubRouteName": {"Zh_tw": "70右 …"}, "EstimateTime": 900},
     ]
-    # 指定方向 → 取該向
-    assert select_stop(entries, "台南高工", direction=1)["EstimateTime"] == 60
-    # 未指定方向、同站名跨兩向 → 不猜，回 None（避免推錯方向的車）
-    assert select_stop(entries, "台南高工") is None
+    assert select_stop(entries, "臺南高工", "70左")["EstimateTime"] == 1700
+    assert select_stop(entries, "臺南高工", "70右")["EstimateTime"] == 900
+    # 不指定 sub_route、同站名多筆 → 不猜，回 None
+    assert select_stop(entries, "臺南高工") is None
+
+
+def test_select_stop_against_real_fixture():
+    import json
+    import pathlib
+
+    raw = json.loads((pathlib.Path(__file__).parent / "fixtures" / "route70_sample.json").read_text("utf-8"))
+    # 上班：70左 的臺南高工（真實資料 Direction=1、StopStatus=0）
+    m = select_stop(raw, "臺南高工", "70左")
+    assert m is not None and m["SubRouteName"]["Zh_tw"].startswith("70左") and m["StopStatus"] == 0
+    # 下班：70右 的中華西路二段（真實資料 Direction=255、StopStatus=1）
+    e = select_stop(raw, "中華西路二段", "70右")
+    assert e is not None and e["SubRouteName"]["Zh_tw"].startswith("70右")
 
 
 @respx.mock

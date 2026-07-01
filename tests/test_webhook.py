@@ -87,7 +87,7 @@ async def test_stops_reply_button_shows_readonly_text():
     store, tg = InMemoryStore(), FakeTelegram()
     await store.save_user(UserSettings.default(1))
     await handle_update(_msg(BTN_STOPS), store, tg, NOW)
-    assert "台南高工" in tg.sent[0][1]
+    assert "臺南高工" in tg.sent[0][1]
     assert "中華西路二段" in tg.sent[0][1]
 
 

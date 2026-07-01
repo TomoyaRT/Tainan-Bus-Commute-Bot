@@ -10,8 +10,9 @@ DEFAULT_ENABLED_DAYS = [2, 3, 4, 5, 6]
 @dataclass
 class SlotConfig:
     bus: str            # 顯示用標籤，如 "70左"
-    route: str          # TDX 查詢用 RouteName，如 "70左"（左右環狀為不同路線）
-    stop_name: str
+    route: str          # TDX 查詢用 RouteName（台南 70 環狀左右皆為 "70"）
+    sub_route: str      # 消歧用 SubRouteName 前綴，如 "70左"/"70右"（同站名兩個子路線都會出現）
+    stop_name: str      # TDX 實際站名（注意用「臺」非「台」）
     window_start: str
     window_end: str
     default_interval: int
@@ -20,6 +21,7 @@ class SlotConfig:
         return {
             "bus": self.bus,
             "route": self.route,
+            "sub_route": self.sub_route,
             "stop_name": self.stop_name,
             "window_start": self.window_start,
             "window_end": self.window_end,
@@ -30,7 +32,8 @@ class SlotConfig:
     def from_dict(cls, d: dict) -> "SlotConfig":
         return cls(
             bus=d["bus"],
-            route=d.get("route", d["bus"]),  # 舊資料無 route 時回退為 bus
+            route=d.get("route", "70"),
+            sub_route=d.get("sub_route", d["bus"]),  # 舊資料無 sub_route 時回退為 bus（70左/70右）
             stop_name=d["stop_name"],
             window_start=d["window_start"],
             window_end=d["window_end"],
@@ -39,9 +42,9 @@ class SlotConfig:
 
 
 SLOT_DEFAULTS = {
-    "morning": SlotConfig(bus="70左", route="70左", stop_name="台南高工",
+    "morning": SlotConfig(bus="70左", route="70", sub_route="70左", stop_name="臺南高工",
                           window_start="08:00", window_end="09:30", default_interval=10),
-    "evening": SlotConfig(bus="70右", route="70右", stop_name="中華西路二段",
+    "evening": SlotConfig(bus="70右", route="70", sub_route="70右", stop_name="中華西路二段",
                           window_start="18:30", window_end="21:00", default_interval=5),
 }
 

@@ -34,7 +34,9 @@ class FakeTelegram:
 
 
 def _morning_entry(estimate=300, status=0):
-    return [{"StopName": {"Zh_tw": "台南高工"}, "StopStatus": status, "EstimateTime": estimate}]
+    return [{"StopName": {"Zh_tw": "臺南高工"},
+             "SubRouteName": {"Zh_tw": "70左 永華市政中心 → 永華市政中心"},
+             "StopStatus": status, "EstimateTime": estimate}]
 
 
 async def _seed_user(store, chat_id=1):
@@ -54,7 +56,7 @@ async def test_first_push_sends_and_records_lastpush():
     await _seed_user(store)
     await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
     assert len(tg.sent) == 1
-    assert "預估 7 分鐘到「台南高工」" in tg.sent[0][1]
+    assert "預估 7 分鐘到「臺南高工」" in tg.sent[0][1]
     rt = await store.get_runtime(1, "2026-06-30")
     assert rt.morning.last_push_at == _tue(8, 0)
 
@@ -151,20 +153,19 @@ async def test_queries_slot_specific_route():
     tdx = RouteRecordingTDX(_morning_entry())
     await _seed_user(store)
     await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
-    assert tdx.routes == ["70左"]  # 上班時段查自己的子路線，而非全域 "70"
+    assert tdx.routes == ["70"]  # RouteName 一律 "70"，左右靠 SubRouteName 區分
 
 
-async def test_ambiguous_direction_is_not_pushed():
-    entries = [
-        {"StopName": {"Zh_tw": "台南高工"}, "Direction": 0, "StopStatus": 0, "EstimateTime": 300},
-        {"StopName": {"Zh_tw": "台南高工"}, "Direction": 1, "StopStatus": 0, "EstimateTime": 60},
-    ]
+async def test_wrong_sub_route_is_not_pushed():
+    # 只有 70右 的臺南高工，但上班時段要的是 70左 → 過濾後無匹配 → 不推
+    entries = [{"StopName": {"Zh_tw": "臺南高工"},
+                "SubRouteName": {"Zh_tw": "70右 …"}, "StopStatus": 0, "EstimateTime": 300}]
     store, tdx, tg = InMemoryStore(), FakeTDX(entries), FakeTelegram()
     await _seed_user(store)
     await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
-    assert tg.sent == []  # 跨方向無法判斷 → 不推
+    assert tg.sent == []
     rt = await store.get_runtime(1, "2026-06-30")
-    assert rt.morning.fail_count == 1  # 計為一次失敗
+    assert rt.morning.fail_count == 1
 
 
 async def test_run_tick_iterates_all_users():

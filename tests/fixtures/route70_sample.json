@@ -1,0 +1,132 @@
+[
+  {
+    "StopUID": "TNN20874",
+    "StopID": "20874",
+    "StopName": {
+      "Zh_tw": "臺南高工",
+      "En": "National Tainan Industrial High School"
+    },
+    "RouteUID": "TNN1070",
+    "RouteID": "1070",
+    "RouteName": {
+      "Zh_tw": "70",
+      "En": "70"
+    },
+    "SubRouteUID": "TNN107001",
+    "SubRouteID": "107001",
+    "SubRouteName": {
+      "Zh_tw": "70右 永華市政中心(府前路) → 永華市政中心(府前路)",
+      "En": "70R"
+    },
+    "Direction": 255,
+    "EstimateTime": 1726,
+    "StopCountDown": 14,
+    "StopSequence": 15,
+    "StopStatus": 1,
+    "IsLastBus": false,
+    "DataTime": "2026-07-01T15:24:41+08:00",
+    "TransTime": "2026-07-01T15:24:41+08:00",
+    "SrcRecTime": "2026-07-01T15:24:41+08:00",
+    "SrcUpdateTime": "2026-07-01T15:25:04+08:00",
+    "UpdateTime": "2026-07-01T15:25:04+08:00"
+  },
+  {
+    "PlateNumb": "EAA-732",
+    "StopUID": "TNN20875",
+    "StopID": "20875",
+    "StopName": {
+      "Zh_tw": "臺南高工",
+      "En": "National Tainan Industrial High School"
+    },
+    "RouteUID": "TNN1070",
+    "RouteID": "1070",
+    "RouteName": {
+      "Zh_tw": "70",
+      "En": "70"
+    },
+    "SubRouteUID": "TNN107002",
+    "SubRouteID": "107002",
+    "SubRouteName": {
+      "Zh_tw": "70左 永華市政中心(府前路) → 永華市政中心(府前路)",
+      "En": "70L"
+    },
+    "Direction": 1,
+    "EstimateTime": 1700,
+    "StopCountDown": 16,
+    "CurrentStop": "20925",
+    "DestinationStop": "20849",
+    "StopSequence": 27,
+    "StopStatus": 0,
+    "IsLastBus": false,
+    "DataTime": "2026-07-01T15:24:38+08:00",
+    "TransTime": "2026-07-01T15:24:38+08:00",
+    "SrcRecTime": "2026-07-01T15:24:38+08:00",
+    "SrcUpdateTime": "2026-07-01T15:25:04+08:00",
+    "UpdateTime": "2026-07-01T15:25:04+08:00"
+  },
+  {
+    "PlateNumb": "EAA-728",
+    "StopUID": "TNN20845",
+    "StopID": "20845",
+    "StopName": {
+      "Zh_tw": "中華西路二段",
+      "En": "Sec. 2 Jhonghua W. Rd."
+    },
+    "RouteUID": "TNN1070",
+    "RouteID": "1070",
+    "RouteName": {
+      "Zh_tw": "70",
+      "En": "70"
+    },
+    "SubRouteUID": "TNN107002",
+    "SubRouteID": "107002",
+    "SubRouteName": {
+      "Zh_tw": "70左 永華市政中心(府前路) → 永華市政中心(府前路)",
+      "En": "70L"
+    },
+    "Direction": 1,
+    "EstimateTime": 953,
+    "StopCountDown": 8,
+    "CurrentStop": "20873",
+    "DestinationStop": "20849",
+    "StopSequence": 37,
+    "StopStatus": 0,
+    "IsLastBus": false,
+    "DataTime": "2026-07-01T15:24:38+08:00",
+    "TransTime": "2026-07-01T15:24:38+08:00",
+    "SrcRecTime": "2026-07-01T15:24:38+08:00",
+    "SrcUpdateTime": "2026-07-01T15:25:04+08:00",
+    "UpdateTime": "2026-07-01T15:25:04+08:00"
+  },
+  {
+    "StopUID": "TNN20844",
+    "StopID": "20844",
+    "StopName": {
+      "Zh_tw": "中華西路二段",
+      "En": "Sec. 2 Jhonghua W. Rd."
+    },
+    "RouteUID": "TNN1070",
+    "RouteID": "1070",
+    "RouteName": {
+      "Zh_tw": "70",
+      "En": "70"
+    },
+    "SubRouteUID": "TNN107001",
+    "SubRouteID": "107001",
+    "SubRouteName": {
+      "Zh_tw": "70右 永華市政中心(府前路) → 永華市政中心(府前路)",
+      "En": "70R"
+    },
+    "Direction": 255,
+    "EstimateTime": 637,
+    "StopCountDown": 4,
+    "StopSequence": 5,
+    "StopStatus": 1,
+    "IsLastBus": false,
+    "DataTime": "2026-07-01T15:24:39+08:00",
+    "TransTime": "2026-07-01T15:24:39+08:00",
+    "SrcRecTime": "2026-07-01T15:24:39+08:00",
+    "SrcUpdateTime": "2026-07-01T15:25:04+08:00",
+    "UpdateTime": "2026-07-01T15:25:04+08:00"
+  }
+]

@@ -17,9 +17,13 @@ def test_user_default_uses_spec_defaults():
     assert u.chat_id == 123
     assert u.enabled_days == [2, 3, 4, 5, 6]
     assert u.slots["morning"].bus == "70左"
-    assert u.slots["morning"].stop_name == "台南高工"
+    assert u.slots["morning"].route == "70"
+    assert u.slots["morning"].sub_route == "70左"
+    assert u.slots["morning"].stop_name == "臺南高工"  # TDX 用「臺」非「台」
     assert u.slots["morning"].default_interval == 10
     assert u.slots["evening"].bus == "70右"
+    assert u.slots["evening"].route == "70"
+    assert u.slots["evening"].sub_route == "70右"
     assert u.slots["evening"].stop_name == "中華西路二段"
     assert u.slots["evening"].default_interval == 5
 

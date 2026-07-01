@@ -40,7 +40,7 @@ async def process_user(now, settings, store, tdx, telegram, city) -> None:
 
     try:
         entries = await tdx.get_eta(city, cfg.route, now)
-        match = select_stop(entries, cfg.stop_name)
+        match = select_stop(entries, cfg.stop_name, cfg.sub_route)
         if match is None:
             raise TDXError("target stop not found")
         sr.fail_count = 0
