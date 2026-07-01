@@ -181,7 +181,7 @@ async def test_push_now_cooldown_blocks_repeat_then_recovers():
     # 冷卻內再點 → 不打 TDX，回倒數訊息
     await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW + timedelta(minutes=2), tdx, "Tainan")
     assert tdx.calls == 1
-    assert "還需等" in tg.sent[-1][1]
+    assert "需等待" in tg.sent[-1][1]
     # 冷卻結束（5 分）後 → 可再推
     await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW + timedelta(minutes=6), tdx, "Tainan")
     assert tdx.calls == 2
@@ -201,3 +201,17 @@ async def test_unknown_callback_kind_is_answered():
     await store.save_user(UserSettings.default(1))
     await handle_update(_cb("bogus:x"), store, tg, NOW)
     assert tg.answers == [("cb", None)]
+
+
+async def test_push_now_quota_exhausted_sends_quota_error():
+    from app.tdx import TDXError
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+
+    class QuotaFailingTDX:
+        async def get_eta(self, city, route, now):
+            raise TDXError("quota", status_code=429)
+
+    await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW, QuotaFailingTDX(), "Tainan")
+    assert tg.sent[-1][1] == "⚠️ TDX公車API額度用完，因此無法取得正確的資訊。"
+

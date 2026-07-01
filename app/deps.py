@@ -27,11 +27,25 @@ def build_runtime():
     """
     global _runtime
     if _runtime is None:
-        from google.cloud import firestore
+        import httpx
+        from app.store import FirestoreStore, InMemoryStore
+        from app.tdx import TDXClient
+        from app.telegram import TelegramClient
 
         http = httpx.AsyncClient(timeout=10)
-        store = FirestoreStore(firestore.AsyncClient())
+
+        # 檢測是否有 GCP 憑證，若無則自動降級使用 InMemoryStore
+        try:
+            import google.auth
+            google.auth.default()
+            from google.cloud import firestore
+            store = FirestoreStore(firestore.AsyncClient())
+        except Exception:
+            print("⚠️ [本地端通知] 未偵測到 GCP 驗證憑證，自動降級為 InMemoryStore 運作 (設定儲存於記憶體，伺服器重啟即重置)")
+            store = InMemoryStore()
+
         tdx = TDXClient(os.environ["TDX_CLIENT_ID"], os.environ["TDX_CLIENT_SECRET"], store, http)
         telegram = TelegramClient(os.environ["TELEGRAM_BOT_TOKEN"], http)
         _runtime = (store, tdx, telegram)
     return _runtime
+

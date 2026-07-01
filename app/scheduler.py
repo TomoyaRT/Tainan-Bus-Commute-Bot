@@ -49,10 +49,13 @@ async def process_user(now, settings, store, tdx, telegram, city) -> None:
         text = format_eta_message(cfg, status, estimate)
         await telegram.send_message(settings.chat_id, text, push_inline_keyboard(slot))
         sr.last_push_at = now
-    except TDXError:
+    except TDXError as exc:
         sr.fail_count += 1
         if sr.fail_count >= FAIL_THRESHOLD:
-            await telegram.send_message(settings.chat_id, API_ERROR_TEXT)
+            if exc.status_code in (403, 429):
+                await telegram.send_message(settings.chat_id, "⚠️ TDX公車API額度用完，因此無法取得正確的資訊。")
+            else:
+                await telegram.send_message(settings.chat_id, API_ERROR_TEXT)
             sr.stopped = True
 
     await store.save_runtime(settings.chat_id, date_str, runtime)

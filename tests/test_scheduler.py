@@ -174,3 +174,15 @@ async def test_run_tick_iterates_all_users():
     await store.save_user(UserSettings.default(2))
     await run_tick(_tue(8, 0), store, tdx, tg, "Tainan")
     assert {s[0] for s in tg.sent} == {1, 2}
+
+
+async def test_quota_exhausted_consecutive_failure_pushes_quota_error():
+    from app.tdx import TDXError
+    store, tdx, tg = InMemoryStore(), FakeTDX(error=TDXError("quota", status_code=429)), FakeTelegram()
+    await _seed_user(store)
+    # 第一次失敗（靜默）
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
+    # 第二次失敗（推額度用完警告）
+    await process_user(_tue(8, 10), await store.get_user(1), store, tdx, tg, "Tainan")
+    assert tg.sent == [(1, "⚠️ TDX公車API額度用完，因此無法取得正確的資訊。", None)]
+

@@ -14,6 +14,9 @@ def test_near_arrival_within_60s():
 def test_not_departed():
     assert format_eta_message(M, 1, None) == "🚌 70左 - 尚未發車（臺南高工）"
 
+def test_not_departed_with_estimate():
+    assert format_eta_message(M, 1, 600) == "🚌 70左 - 預估 10 分鐘到「臺南高工」"
+
 def test_traffic_control():
     assert format_eta_message(M, 2, None) == "🚧 70左 - 交管不停靠（臺南高工）"
 

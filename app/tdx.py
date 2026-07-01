@@ -10,7 +10,9 @@ TOKEN_REFRESH_BUFFER = timedelta(minutes=1)
 
 
 class TDXError(Exception):
-    pass
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 def _zh(value):
@@ -62,7 +64,7 @@ class TDXClient:
         except httpx.HTTPError as exc:
             raise TDXError(f"token request failed: {exc}") from exc
         if resp.status_code != 200:
-            raise TDXError(f"token status {resp.status_code}")
+            raise TDXError(f"token status {resp.status_code}", status_code=resp.status_code)
         try:
             data = resp.json()
             token = data["access_token"]
@@ -83,7 +85,7 @@ class TDXClient:
         except httpx.HTTPError as exc:
             raise TDXError(f"eta request failed: {exc}") from exc
         if resp.status_code != 200:
-            raise TDXError(f"eta status {resp.status_code}")
+            raise TDXError(f"eta status {resp.status_code}", status_code=resp.status_code)
         try:
             return resp.json()
         except ValueError as exc:

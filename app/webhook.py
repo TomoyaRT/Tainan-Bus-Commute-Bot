@@ -57,7 +57,7 @@ async def _manual_push(chat_id: int, store, telegram, now: datetime, tdx, city: 
     if last is not None and now - last < MANUAL_PUSH_COOLDOWN:
         remaining = MANUAL_PUSH_COOLDOWN - (now - last)
         await telegram.send_message(
-            chat_id, f"剛叫過車，還需等 {_fmt_remaining(remaining)} 才能再次點「{BTN_PUSH_NOW}」。"
+            chat_id, f"剛推播過，需等待 {_fmt_remaining(remaining)} 才能再次使用。"
         )
         return
 
@@ -77,12 +77,14 @@ async def _manual_push(chat_id: int, store, telegram, now: datetime, tdx, city: 
                 lines.append(f"{cfg.bus}｜{cfg.stop_name}：查無資料")
             else:
                 lines.append(format_eta_message(cfg, int(match.get("StopStatus", 0)), match.get("EstimateTime")))
-    except TDXError:
-        await telegram.send_message(chat_id, API_ERROR_TEXT)
+    except TDXError as exc:
+        if exc.status_code in (403, 429):
+            await telegram.send_message(chat_id, "⚠️ TDX公車API額度用完，因此無法取得正確的資訊。")
+        else:
+            await telegram.send_message(chat_id, API_ERROR_TEXT)
         return
 
-    mins = int(MANUAL_PUSH_COOLDOWN.total_seconds() // 60)
-    await telegram.send_message(chat_id, "\n".join(lines) + f"\n（{mins} 分鐘後可再次叫車）")
+    await telegram.send_message(chat_id, "\n".join(lines))
 
 
 async def _handle_message(message: dict, store, telegram, now: datetime, tdx, city: str) -> None:

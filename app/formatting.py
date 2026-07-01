@@ -11,11 +11,11 @@ NEAR_ARRIVAL_SECONDS = 60
 def format_eta_message(slot: SlotConfig, stop_status: int, estimate_time: int | None) -> str:
     bus = slot.bus
     name = slot.stop_name
-    if stop_status == 0:
-        if estimate_time is not None and estimate_time <= NEAR_ARRIVAL_SECONDS:
+    if stop_status in (0, 1) and estimate_time is not None and estimate_time > 0:
+        if estimate_time <= NEAR_ARRIVAL_SECONDS:
             return f"🚌 {bus} - 進站中，即將到「{name}」"
-        if estimate_time is not None:
-            return f"🚌 {bus} - 預估 {ceil(estimate_time / 60)} 分鐘到「{name}」"
+        return f"🚌 {bus} - 預估 {ceil(estimate_time / 60)} 分鐘到「{name}」"
+    if stop_status == 0:
         return API_ERROR_TEXT
     if stop_status == 1:
         return f"🚌 {bus} - 尚未發車（{name}）"
