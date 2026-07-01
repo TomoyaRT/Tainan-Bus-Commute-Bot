@@ -35,7 +35,7 @@ async def process_user(now, settings, store, tdx, telegram, city, cache: dict | 
         return
 
     interval = sr.interval_override or cfg.default_interval
-    if not is_due(now, sr.last_push_at, interval):
+    if not is_due(now, sr.last_push_at, interval, cfg.window_start):
         return
 
     try:
