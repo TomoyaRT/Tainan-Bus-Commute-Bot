@@ -1,6 +1,7 @@
 from app.keyboards import (
     push_inline_keyboard, interval_picker_keyboard, settings_reply_keyboard,
-    slot_choice_keyboard, day_picker_keyboard, days_to_mask, mask_to_days,
+    settings_menu_keyboard, slot_choice_keyboard, day_picker_keyboard,
+    days_to_mask, mask_to_days, BTN_PUSH_NOW, BTN_SETTINGS,
 )
 
 def test_push_inline_keyboard_has_stop_and_interval():
@@ -19,7 +20,13 @@ def test_settings_reply_keyboard_is_persistent():
     kb = settings_reply_keyboard()
     assert kb["is_persistent"] is True
     labels = [b["text"] for b in kb["keyboard"][0]]
-    assert labels == ["⏱ 推播間隔", "🚏 推播公車站", "📅 推播時間"]
+    assert labels == [BTN_PUSH_NOW, BTN_SETTINGS]  # 精簡為兩顆：立即推播、設定
+
+
+def test_settings_menu_lists_three_functions():
+    kb = settings_menu_keyboard()
+    datas = [b["callback_data"] for b in kb["inline_keyboard"][0]]
+    assert datas == ["menu:interval", "menu:days", "menu:stops"]
 
 def test_slot_choice_keyboard_encodes_action():
     kb = slot_choice_keyboard("defint")
@@ -37,7 +44,8 @@ def test_day_picker_marks_selected_and_carries_mask():
     flat = [b for row in kb["inline_keyboard"] for b in row]
     tue = next(b for b in flat if b["callback_data"].startswith("day:2:"))
     mon = next(b for b in flat if b["callback_data"].startswith("day:1:"))
-    assert tue["text"].startswith("✅")
-    assert not mon["text"].startswith("✅")
+    assert tue["text"] == "【週二】"   # 已選：括號標示，不用表情符號
+    assert mon["text"] == "週一"       # 未選
     submit = flat[-1]
     assert submit["callback_data"] == f"daysub:{mask}"
+    assert submit["text"] == "送出設定"  # 送出按鈕外觀明顯不同、無表情符號

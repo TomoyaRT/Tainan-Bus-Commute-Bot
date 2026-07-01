@@ -41,5 +41,5 @@ async def telegram_webhook(
         raise HTTPException(status_code=403, detail="forbidden")
     update = await request.json()
     store, tdx, telegram = build_runtime()
-    await webhook.handle_update(update, store, telegram, current_now())
+    await webhook.handle_update(update, store, telegram, current_now(), tdx, CITY)
     return {"ok": True}

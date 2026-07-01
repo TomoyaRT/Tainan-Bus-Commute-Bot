@@ -5,12 +5,16 @@ from app.models import VALID_INTERVALS
 DAY_LABELS = {1: "週一", 2: "週二", 3: "週三", 4: "週四", 5: "週五", 6: "週六", 7: "週日"}
 SLOT_LABELS = {"morning": "上班", "evening": "下班"}
 
+# 底部常駐鍵盤的按鈕文字（同時作為 webhook 訊息路由的 key）
+BTN_PUSH_NOW = "立即推播"
+BTN_SETTINGS = "設定"
+
 
 def push_inline_keyboard(slot: str) -> dict:
     return {
         "inline_keyboard": [[
-            {"text": "⏹ 停止推播", "callback_data": f"stop:{slot}"},
-            {"text": "⏱ 推播間隔", "callback_data": f"interval:{slot}"},
+            {"text": "停止推播", "callback_data": f"stop:{slot}"},
+            {"text": "推播間隔", "callback_data": f"interval:{slot}"},
         ]]
     }
 
@@ -21,14 +25,22 @@ def interval_picker_keyboard(scope: str, slot: str) -> dict:
 
 
 def settings_reply_keyboard() -> dict:
+    """底部常駐鍵盤：只放兩顆——立即推播、設定。"""
     return {
-        "keyboard": [[
-            {"text": "⏱ 推播間隔"},
-            {"text": "🚏 推播公車站"},
-            {"text": "📅 推播時間"},
-        ]],
+        "keyboard": [[{"text": BTN_PUSH_NOW}, {"text": BTN_SETTINGS}]],
         "resize_keyboard": True,
         "is_persistent": True,
+    }
+
+
+def settings_menu_keyboard() -> dict:
+    """點「設定」後用訊息展開的功能選單。"""
+    return {
+        "inline_keyboard": [[
+            {"text": "推播間隔", "callback_data": "menu:interval"},
+            {"text": "推播時間", "callback_data": "menu:days"},
+            {"text": "推播公車站", "callback_data": "menu:stops"},
+        ]]
     }
 
 
@@ -49,9 +61,12 @@ def mask_to_days(mask: int) -> list[int]:
 
 
 def day_picker_keyboard(mask: int) -> dict:
+    """星期複選：已選以「【週X】」標示、未選為「週X」（不用表情符號）；
+    最後一列為外觀明顯不同的「送出設定」按鈕。"""
     buttons = []
     for d in range(1, 8):
-        checked = "✅" if mask & (1 << (d - 1)) else ""
-        buttons.append({"text": f"{checked}{DAY_LABELS[d]}", "callback_data": f"day:{d}:{mask}"})
-    rows = [buttons[0:4], buttons[4:7], [{"text": "✅ 送出", "callback_data": f"daysub:{mask}"}]]
+        selected = bool(mask & (1 << (d - 1)))
+        label = f"【{DAY_LABELS[d]}】" if selected else DAY_LABELS[d]
+        buttons.append({"text": label, "callback_data": f"day:{d}:{mask}"})
+    rows = [buttons[0:4], buttons[4:7], [{"text": "送出設定", "callback_data": f"daysub:{mask}"}]]
     return {"inline_keyboard": rows}

@@ -109,16 +109,23 @@ class SlotRuntime:
 class DayRuntime:
     morning: SlotRuntime = field(default_factory=SlotRuntime)
     evening: SlotRuntime = field(default_factory=SlotRuntime)
+    last_manual_push_at: datetime | None = None  # 「立即推播」的冷卻時間戳（當日）
 
     def slot(self, name: str) -> SlotRuntime:
         return getattr(self, name)
 
     def to_dict(self) -> dict:
-        return {"morning": self.morning.to_dict(), "evening": self.evening.to_dict()}
+        return {
+            "morning": self.morning.to_dict(),
+            "evening": self.evening.to_dict(),
+            "last_manual_push_at": self.last_manual_push_at.isoformat() if self.last_manual_push_at else None,
+        }
 
     @classmethod
     def from_dict(cls, d: dict) -> "DayRuntime":
+        raw = d.get("last_manual_push_at")
         return cls(
             morning=SlotRuntime.from_dict(d.get("morning", {})),
             evening=SlotRuntime.from_dict(d.get("evening", {})),
+            last_manual_push_at=datetime.fromisoformat(raw) if raw else None,
         )
