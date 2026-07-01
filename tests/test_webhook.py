@@ -62,7 +62,7 @@ async def test_start_creates_user_and_shows_persistent_keyboard():
     assert await store.get_user(1) is not None
     kb = tg.sent[0][2]
     assert kb["is_persistent"] is True
-    assert [b["text"] for b in kb["keyboard"][0]] == [BTN_PUSH_NOW, BTN_SETTINGS, BTN_MANUAL]
+    assert [b["text"] for b in kb["keyboard"][0]] == [BTN_PUSH_NOW, BTN_SETTINGS]
 
 
 async def test_manual_button_shows_instructions():
@@ -77,7 +77,31 @@ async def test_settings_button_opens_menu():
     await store.save_user(UserSettings.default(1))
     await handle_update(_msg(BTN_SETTINGS), store, tg, NOW)
     datas = [b["callback_data"] for b in tg.sent[0][2]["inline_keyboard"][0]]
-    assert datas == ["menu:interval", "menu:days", "menu:stops"]
+    assert datas == ["menu:modify_menu", "menu:info_menu"]
+
+
+async def test_menu_modify_menu_edits_markup():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("menu:modify_menu"), store, tg, NOW)
+    assert len(tg.edits) == 1
+    assert tg.edits[0][2]["inline_keyboard"][0][0]["callback_data"] == "menu:interval"
+
+
+async def test_menu_info_menu_edits_markup():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("menu:info_menu"), store, tg, NOW)
+    assert len(tg.edits) == 1
+    assert tg.edits[0][2]["inline_keyboard"][0][0]["callback_data"] == "menu:stops"
+
+
+async def test_menu_main_returns_to_main_menu():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    await handle_update(_cb("menu:main"), store, tg, NOW)
+    assert len(tg.edits) == 1
+    assert tg.edits[0][2]["inline_keyboard"][0][0]["callback_data"] == "menu:modify_menu"
 
 
 # ── 設定選單各分支 ──

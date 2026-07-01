@@ -26,22 +26,43 @@ def interval_picker_keyboard(scope: str, slot: str) -> dict:
 
 
 def settings_reply_keyboard() -> dict:
-    """底部常駐鍵盤：立即推播、設定、說明書。"""
+    """底部常駐鍵盤：立即推播、設定。"""
     return {
-        "keyboard": [[{"text": BTN_PUSH_NOW}, {"text": BTN_SETTINGS}, {"text": BTN_MANUAL}]],
+        "keyboard": [[{"text": BTN_PUSH_NOW}, {"text": BTN_SETTINGS}]],
         "resize_keyboard": True,
         "is_persistent": True,
     }
 
 
-def settings_menu_keyboard() -> dict:
-    """點「設定」後用訊息展開的功能選單。"""
+def settings_main_keyboard() -> dict:
+    """點「設定」後顯示的第一層類別選單。"""
     return {
-        "inline_keyboard": [[
-            {"text": "推播間隔", "callback_data": "menu:interval"},
-            {"text": "推播時間", "callback_data": "menu:days"},
-            {"text": "公車站與時段", "callback_data": "menu:stops"},
-        ]]
+        "inline_keyboard": [
+            [{"text": "修改設定", "callback_data": "menu:modify_menu"},
+             {"text": "顯示資訊", "callback_data": "menu:info_menu"}]
+        ]
+    }
+
+
+def modify_settings_keyboard() -> dict:
+    """「修改設定」子選單。"""
+    return {
+        "inline_keyboard": [
+            [{"text": "推播間隔", "callback_data": "menu:interval"},
+             {"text": "推播時間", "callback_data": "menu:days"}],
+            [{"text": "⬅️ 返回", "callback_data": "menu:main"}]
+        ]
+    }
+
+
+def info_settings_keyboard() -> dict:
+    """「顯示資訊」子選單。"""
+    return {
+        "inline_keyboard": [
+            [{"text": "公車站與時段", "callback_data": "menu:stops"},
+             {"text": "說明書", "callback_data": "menu:manual"}],
+            [{"text": "⬅️ 返回", "callback_data": "menu:main"}]
+        ]
     }
 
 
