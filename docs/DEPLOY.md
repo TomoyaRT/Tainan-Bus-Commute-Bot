@@ -129,3 +129,62 @@ git push origin main
 gcloud run services describe tainan-bus --region asia-east1 --format='value(status.url)'
 curl -s -o /dev/null -w "%{http_code}" "<URL>/healthz"   # 預期 200
 ```
+
+---
+
+## 6. Cloud Scheduler 與 Telegram webhook 串接
+
+以下 `$URL` 為 Cloud Run URL；`$TICK`、`$BOT`、`$HOOK` 分別為 `TICK_AUTH_TOKEN`、`TELEGRAM_BOT_TOKEN`、`TELEGRAM_WEBHOOK_SECRET` 的實際值。
+
+### 6.1 建立 Cloud Scheduler job（帶自訂標頭）
+
+```bash
+gcloud scheduler jobs create http tainan-bus-tick \
+  --location=asia-east1 \
+  --schedule="*/5 * * * *" \
+  --time-zone="Asia/Taipei" \
+  --uri="${URL}/tick" \
+  --http-method=POST \
+  --headers="X-Tick-Token=${TICK}"
+```
+
+預期：`Created job [tainan-bus-tick]`。
+
+### 6.2 手動觸發一次並驗證
+
+```bash
+gcloud scheduler jobs run tainan-bus-tick --location=asia-east1
+gcloud run services logs read tainan-bus --region asia-east1 --limit=20
+```
+
+預期：log 顯示 `/tick` 200（窗口外時無推播屬正常）。
+
+### 6.3 設定 Telegram webhook（帶 secret token）
+
+```bash
+curl -s "https://api.telegram.org/bot${BOT}/setWebhook" \
+  -d "url=${URL}/webhook" \
+  -d "secret_token=${HOOK}"
+```
+
+預期：回傳 `{"ok":true,"result":true,...}`。Telegram 之後每則更新都會在標頭帶上 `X-Telegram-Bot-Api-Secret-Token`，供 `/webhook` 驗證。
+
+### 6.4 端到端驗證
+
+在 Telegram 對 bot 送 `/start` → 應收到歡迎詞與常駐設定鍵盤。
+
+```bash
+curl -s "https://api.telegram.org/bot${BOT}/getWebhookInfo"
+```
+
+預期：`pending_update_count` 不持續累積、無 `last_error_message`。
+
+---
+
+## 7. 上線後檢查清單
+
+- [ ] **TDX 額度模式**：到 TDX 會員專區確認所用 API 屬「基礎服務（免費）」；本專案每月約 858 次呼叫，在免費額度內。若額度不足，改為縮短推播窗口或拉長推播間隔，**不購買點數**。
+- [ ] **路線與站名一致性**：確認 TDX 實際回傳的 70左／70右 `RouteName`、方向（`Direction`）與站名，與設定中的 `台南高工`（上班 70左）、`中華西路二段`（下班 70右）一致；若 TDX 的 `StopName` 用字不同，需同步調整 `app/models.py` 的 `SLOT_DEFAULTS`。
+- [ ] **首個上班日觀察**：於首個週二 08:00–09:30 窗口觀察是否如期推播（約 9 次），下班於週二～週六 18:30–21:00 觀察（約 30 次）。
+- [ ] **失敗行為**：確認政府 API 連續 2 次失敗時，會推一次「政府API出狀況」回饋訊息並停止當時段當日推播，隔天自動恢復。
+- [ ] **費用**：於 GCP 帳單頁確認無非預期費用，維持完全免費。
