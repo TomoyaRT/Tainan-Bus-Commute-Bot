@@ -157,16 +157,33 @@ async def test_queries_slot_specific_route():
     assert tdx.routes == ["70"]  # RouteName 一律 "70"，左右靠 SubRouteName 區分
 
 
-async def test_wrong_sub_route_is_not_pushed():
-    # 只有 70右 的臺南高工，但上班時段要的是 70左 → 過濾後無匹配 → 不推
+async def test_wrong_sub_route_sends_no_data_not_failure():
+    from app.formatting import NO_DATA_TEXT
+    # 只有 70右 的臺南高工，但上班時段要的是 70左 → 過濾後無匹配 → 送「暫時查不到」
     entries = [{"StopName": {"Zh_tw": "臺南高工"},
                 "SubRouteName": {"Zh_tw": "70右 …"}, "StopStatus": 0, "EstimateTime": 300}]
     store, tdx, tg = InMemoryStore(), FakeTDX(entries), FakeTelegram()
     await _seed_user(store)
     await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
-    assert tg.sent == []
+    assert tg.sent[0][1] == NO_DATA_TEXT
     rt = await store.get_runtime(1, "2026-06-30")
-    assert rt.morning.fail_count == 1
+    assert rt.morning.fail_count == 0
+    assert rt.morning.last_push_at == _tue(8, 0)
+
+
+async def test_multiple_buses_same_stop_not_error():
+    entries = [
+        {"StopName": {"Zh_tw": "臺南高工"}, "SubRouteName": {"Zh_tw": "70左 …"},
+         "StopStatus": 0, "EstimateTime": 480, "PlateNumb": "EAA-732"},
+        {"StopName": {"Zh_tw": "臺南高工"}, "SubRouteName": {"Zh_tw": "70左 …"},
+         "StopStatus": 0, "EstimateTime": 1080, "PlateNumb": "EAA-728"},
+    ]
+    store, tdx, tg = InMemoryStore(), FakeTDX(entries), FakeTelegram()
+    await _seed_user(store)
+    await process_user(_tue(8, 0), await store.get_user(1), store, tdx, tg, "Tainan")
+    text = tg.sent[0][1]
+    assert "EAA-732" in text and "EAA-728" in text
+    assert "政府系統異常" not in text
 
 
 async def test_run_tick_iterates_all_users():
