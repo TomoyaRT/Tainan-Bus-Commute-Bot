@@ -274,12 +274,12 @@ async def test_push_now_cooldown_blocks_repeat_then_recovers():
     await store.save_user(UserSettings.default(1))
     tdx = FakeTDX(_both_stops_entries())
     await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW, tdx, "Tainan")
-    # 冷卻內再點 → 不打 TDX，回倒數訊息
-    await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW + timedelta(minutes=2), tdx, "Tainan")
+    # 冷卻內再點（30 秒）→ 不打 TDX，回倒數訊息
+    await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW + timedelta(seconds=30), tdx, "Tainan")
     assert tdx.calls == 1
     assert "需等待" in tg.sent[-1][1]
-    # 冷卻結束（5 分）後 → 可再推
-    await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW + timedelta(minutes=6), tdx, "Tainan")
+    # 冷卻結束（1 分）後 → 可再推
+    await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW + timedelta(minutes=2), tdx, "Tainan")
     assert tdx.calls == 2
 
 

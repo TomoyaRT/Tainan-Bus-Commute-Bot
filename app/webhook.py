@@ -13,7 +13,7 @@ from app.keyboards import (
 from app.models import UserSettings
 from app.tdx import TDXError, select_matches
 
-MANUAL_PUSH_COOLDOWN = timedelta(minutes=5)
+MANUAL_PUSH_COOLDOWN = timedelta(minutes=1)
 MANUAL_SLOT_HEADERS = {"morning": "🌅 上班", "evening": "🌃 下班"}
 
 
@@ -60,7 +60,7 @@ def _manual_text(user: UserSettings) -> str:
         "   • 點擊推播訊息下方的「停止推播」，可暫停今日剩餘的自動通知，隔日會自動恢復。\n\n"
         "2. 🚀 立即推播 (手動)\n"
         "   • 點擊底部「立即推播」按鈕，即可查詢目前上班與下班時段的最新公車到站時間。\n"
-        "   • 設有 5 分鐘冷卻時間防止重複查詢。\n\n"
+        "   • 設有 1 分鐘冷卻時間防止重複查詢。\n\n"
         "3. ⚙️ 設定選單\n"
         "   • 點擊底部「控制台」按鈕：\n"
         "     - 推播間隔：修改上班/下班時段的每日預設通知頻率。\n"
