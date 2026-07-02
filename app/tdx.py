@@ -19,14 +19,14 @@ def _zh(value):
     return value.get("Zh_tw") if isinstance(value, dict) else value
 
 
-def select_stop(
+def select_matches(
     entries: list[dict], stop_name: str, sub_route: str | None = None
-) -> dict | None:
-    """從到站清單挑出目標站。
+) -> list[dict]:
+    """回傳同一 (站名，子路線前綴) 的所有到站筆數。
 
-    台南 70 是環狀路線，RouteName 皆為 "70"，靠 SubRouteName（"70左…"/"70右…"）區分左右；
-    同一站名在兩個子路線都會出現，故 sub_route 指定時以 SubRouteName 前綴過濾。
-    過濾後若仍非唯一一筆（理論上不會），回傳 None——寧可不推，也不推錯車。
+    台南 70 是環狀路線，RouteName 皆為 "70"，靠 SubRouteName("70左…"/"70右…")區分左右；
+    同站名在兩子路線都會出現，故 sub_route 指定時以 SubRouteName 前綴過濾。
+    尖峰多車或環狀頭尾同站會有多筆，一律全部回傳交由上層呈現；不存在則回 []。
     """
     matches = []
     for entry in entries:
@@ -35,9 +35,7 @@ def select_stop(
         if sub_route is not None and not (_zh(entry.get("SubRouteName")) or "").startswith(sub_route):
             continue
         matches.append(entry)
-    if len(matches) != 1:
-        return None
-    return matches[0]
+    return matches
 
 
 class TDXClient:

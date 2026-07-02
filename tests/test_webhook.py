@@ -311,3 +311,21 @@ async def test_push_now_quota_exhausted_sends_quota_error():
     await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW, QuotaFailingTDX(), "Tainan")
     assert tg.sent[-1][1] == "⚠️ TDX 公車 API 額度已用完，無法取得正確資訊。"
 
+
+async def test_manual_push_multi_bus_lists_plates():
+    store, tg = InMemoryStore(), FakeTelegram()
+    await store.save_user(UserSettings.default(1))
+    entries = [
+        {"StopName": {"Zh_tw": "臺南高工"}, "SubRouteName": {"Zh_tw": "70左 …"},
+         "StopStatus": 0, "EstimateTime": 480, "PlateNumb": "EAA-732"},
+        {"StopName": {"Zh_tw": "臺南高工"}, "SubRouteName": {"Zh_tw": "70左 …"},
+         "StopStatus": 0, "EstimateTime": 1080, "PlateNumb": "EAA-728"},
+        {"StopName": {"Zh_tw": "中華西路二段"}, "SubRouteName": {"Zh_tw": "70右 …"},
+         "StopStatus": 0, "EstimateTime": 300, "PlateNumb": "EAA-500"},
+    ]
+    tdx = FakeTDX(entries)
+    await handle_update(_msg(BTN_PUSH_NOW), store, tg, NOW, tdx, "Tainan")
+    body = tg.sent[0][1]
+    assert "EAA-732" in body and "EAA-728" in body
+    assert "政府系統異常" not in body and "查無資料" not in body
+

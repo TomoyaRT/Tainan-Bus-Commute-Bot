@@ -5,7 +5,7 @@ from datetime import datetime
 from app.formatting import API_ERROR_TEXT, format_eta_message
 from app.keyboards import push_inline_keyboard
 from app.models import UserSettings
-from app.tdx import TDXError, select_stop
+from app.tdx import TDXError, select_matches
 from app.timeutil import in_window, is_due
 
 FAIL_THRESHOLD = 2
@@ -46,13 +46,9 @@ async def process_user(now, settings, store, tdx, telegram, city, cache: dict | 
             if cache is not None:
                 cache[cfg.route] = entries
 
-        match = select_stop(entries, cfg.stop_name, cfg.sub_route)
-        if match is None:
-            raise TDXError("target stop not found")
+        matches = select_matches(entries, cfg.stop_name, cfg.sub_route)
         sr.fail_count = 0
-        status = int(match.get("StopStatus", 0))
-        estimate = match.get("EstimateTime")
-        text = format_eta_message(cfg, status, estimate)
+        text = format_eta_message(cfg, matches, now)
         await telegram.send_message(settings.chat_id, text, push_inline_keyboard(slot))
         sr.last_push_at = now
     except TDXError as exc:

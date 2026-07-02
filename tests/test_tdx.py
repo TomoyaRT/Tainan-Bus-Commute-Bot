@@ -5,7 +5,7 @@ import httpx
 import pytest
 import respx
 
-from app.tdx import TDXClient, TDXError, select_stop
+from app.tdx import TDXClient, TDXError, select_matches
 
 TPE = ZoneInfo("Asia/Taipei")
 NOW = datetime(2026, 6, 30, 8, 0, tzinfo=TPE)
@@ -24,39 +24,43 @@ class FakeTokenStore:
         self.value = (token, expires_at)
 
 
-def test_select_stop_handles_dict_stopname():
+def test_select_matches_handles_dict_stopname():
     entries = [{"StopName": {"Zh_tw": "台南高工"}, "StopStatus": 0, "EstimateTime": 300}]
-    assert select_stop(entries, "台南高工")["EstimateTime"] == 300
+    got = select_matches(entries, "台南高工")
+    assert len(got) == 1 and got[0]["EstimateTime"] == 300
 
-def test_select_stop_handles_plain_string_and_missing():
+
+def test_select_matches_missing_returns_empty():
     entries = [{"StopName": "中華西路二段", "StopStatus": 3}]
-    assert select_stop(entries, "中華西路二段")["StopStatus"] == 3
-    assert select_stop(entries, "不存在") is None
+    assert select_matches(entries, "不存在") == []
 
 
-def test_select_stop_disambiguates_by_sub_route():
-    # 環狀 70：同站名在 70左/70右 都出現，靠 SubRouteName 前綴消歧
+def test_select_matches_disambiguates_by_sub_route():
     entries = [
         {"StopName": {"Zh_tw": "臺南高工"}, "SubRouteName": {"Zh_tw": "70左 …"}, "EstimateTime": 1700},
         {"StopName": {"Zh_tw": "臺南高工"}, "SubRouteName": {"Zh_tw": "70右 …"}, "EstimateTime": 900},
     ]
-    assert select_stop(entries, "臺南高工", "70左")["EstimateTime"] == 1700
-    assert select_stop(entries, "臺南高工", "70右")["EstimateTime"] == 900
-    # 不指定 sub_route、同站名多筆 → 不猜，回 None
-    assert select_stop(entries, "臺南高工") is None
+    assert [e["EstimateTime"] for e in select_matches(entries, "臺南高工", "70左")] == [1700]
+    assert [e["EstimateTime"] for e in select_matches(entries, "臺南高工", "70右")] == [900]
 
 
-def test_select_stop_against_real_fixture():
+def test_select_matches_returns_all_when_ambiguous():
+    # 環狀頭尾同站或尖峰多車：同站同子路線多筆，全部回傳
+    entries = [
+        {"StopName": {"Zh_tw": "永華市政中心(府前路)"}, "SubRouteName": {"Zh_tw": "70左 …"}, "EstimateTime": 200},
+        {"StopName": {"Zh_tw": "永華市政中心(府前路)"}, "SubRouteName": {"Zh_tw": "70左 …"}, "EstimateTime": 2400},
+    ]
+    assert len(select_matches(entries, "永華市政中心(府前路)", "70左")) == 2
+
+
+def test_select_matches_against_real_fixture():
     import json
     import pathlib
-
     raw = json.loads((pathlib.Path(__file__).parent / "fixtures" / "route70_sample.json").read_text("utf-8"))
-    # 上班：70左 的臺南高工（真實資料 Direction=1、StopStatus=0）
-    m = select_stop(raw, "臺南高工", "70左")
-    assert m is not None and m["SubRouteName"]["Zh_tw"].startswith("70左") and m["StopStatus"] == 0
-    # 下班：70右 的中華西路二段（真實資料 Direction=255、StopStatus=1）
-    e = select_stop(raw, "中華西路二段", "70右")
-    assert e is not None and e["SubRouteName"]["Zh_tw"].startswith("70右")
+    m = select_matches(raw, "臺南高工", "70左")
+    assert len(m) == 1 and m[0]["SubRouteName"]["Zh_tw"].startswith("70左")
+    e = select_matches(raw, "中華西路二段", "70右")
+    assert len(e) == 1 and e[0]["SubRouteName"]["Zh_tw"].startswith("70右")
 
 
 @respx.mock
