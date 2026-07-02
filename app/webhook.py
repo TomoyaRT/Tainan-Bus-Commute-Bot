@@ -11,7 +11,7 @@ from app.keyboards import (
     slot_window_choice_keyboard, window_picker_keyboard, boarding_stop_keyboard,
 )
 from app.models import UserSettings
-from app.tdx import TDXError, select_stop
+from app.tdx import TDXError, select_matches
 
 MANUAL_PUSH_COOLDOWN = timedelta(minutes=5)
 MANUAL_SLOT_HEADERS = {"morning": "🌅 上班", "evening": "🌃 下班"}
@@ -105,11 +105,8 @@ async def _manual_push(chat_id: int, store, telegram, now: datetime, tdx, city: 
             cfg = user.slots[name]
             if cfg.route not in cache:
                 cache[cfg.route] = await tdx.get_eta(city, cfg.route, now)
-            match = select_stop(cache[cfg.route], cfg.stop_name, cfg.sub_route)
-            if match is None:
-                body = f"{cfg.bus}｜{cfg.stop_name}：查無資料"
-            else:
-                body = format_eta_message(cfg, int(match.get("StopStatus", 0)), match.get("EstimateTime"))
+            matches = select_matches(cache[cfg.route], cfg.stop_name, cfg.sub_route)
+            body = format_eta_message(cfg, matches, now)
             blocks.append(f"{MANUAL_SLOT_HEADERS[name]}\n{body}")
     except TDXError as exc:
         if exc.status_code in (403, 429):
