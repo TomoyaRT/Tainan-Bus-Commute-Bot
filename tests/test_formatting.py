@@ -43,8 +43,15 @@ def test_bug_a_status0_none_estimate_is_no_data():
     assert format_eta_message(M, [_bus(0, None)], NOW) == NO_DATA_TEXT
 
 
-def test_bug_b_status1_with_estimate_shows_not_departed():
-    assert format_eta_message(M, [_bus(1, 1726)], NOW) == "🚌 70左 - 尚未發車（臺南高工）"
+def test_status1_with_estimate_shows_projected_arrival():
+    # 台南 TDX 對尚未發車也逐站給到站估計 → 顯示估計到站(非只「尚未發車」)
+    assert format_eta_message(M, [_bus(1, 1726)], NOW) == \
+        "🚌 70左 - 尚未發車，估計 28 分鐘到「臺南高工」"
+
+
+def test_status1_near_departure_shows_about_to_depart():
+    assert format_eta_message(M, [_bus(1, 40)], NOW) == \
+        "🚌 70左 - 尚未發車，即將發車（臺南高工）"
 
 
 def test_multi_two_running_sorted_with_plates():
@@ -71,11 +78,18 @@ def test_multi_near_arrival_line_uses_plate_phrase():
     )
 
 
-def test_multi_skips_not_departed_entries():
-    # 一台行駛中 + 一台尚未發車(status1) → 只顯示單車格式
+def test_multi_mixes_running_and_not_departed_sorted():
+    # 一台行駛中 + 一台尚未發車(有估計) → 依到站時間混排,各自標示
     matches = [_bus(0, 480, "EAA-732"), _bus(1, 1726)]
-    assert format_eta_message(M, matches, NOW) == \
-        "🚌 70左 - EAA-732 預估 8 分鐘到「臺南高工」"
+    assert format_eta_message(M, matches, NOW) == (
+        "🚌 70左 到「臺南高工」\n"
+        "・ EAA-732 預估 8 分鐘\n"
+        "・ 尚未發車，估計 28 分鐘到站"
+    )
+
+
+def test_status1_without_estimate_still_shows_not_departed():
+    assert format_eta_message(M, [_bus(1, None)], NOW) == "🚌 70左 - 尚未發車（臺南高工）"
 
 
 def test_all_not_departed_shows_not_departed():
