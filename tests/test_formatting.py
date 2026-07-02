@@ -124,3 +124,35 @@ def test_adjusted_seconds_clamped_to_zero():
 def test_adjusted_seconds_falls_back_to_datatime():
     entry = {"EstimateTime": 600, "DataTime": "2026-06-30T07:59:00+08:00"}
     assert adjusted_seconds(entry, NOW) == 540
+
+
+def test_end_to_end_staleness_and_floor():
+    # EstimateTime=630、來源時間比 NOW 早 90 秒 → adjusted=540 → floor 9 分鐘
+    entry = {"StopStatus": 0, "EstimateTime": 630,
+             "SrcUpdateTime": "2026-06-30T07:58:30+08:00", "PlateNumb": "EAA-9"}
+    assert format_eta_message(M, [entry], NOW) == "🚌 70左 - EAA-9 預估 9 分鐘到「臺南高工」"
+
+
+def test_status_precedence_traffic_over_not_departed():
+    assert format_eta_message(M, [_bus(1, None), _bus(2, None)], NOW) == \
+        "🚧 70左 - 交管不停靠（臺南高工）"
+
+
+def test_status_precedence_not_in_service_over_last_bus():
+    assert format_eta_message(E, [_bus(3, None), _bus(4, None)], NOW) == "70右 - 今日未營運"
+
+
+def test_multi_running_without_plates_uses_plain_lines():
+    matches = [_bus(0, 480), _bus(0, 1080)]
+    assert format_eta_message(M, matches, NOW) == (
+        "🚌 70左 到「臺南高工」\n"
+        "・ 預估 8 分鐘\n"
+        "・ 預估 18 分鐘"
+    )
+
+
+def test_adjusted_seconds_ignores_naive_source_time():
+    # naive(無時區)來源時間應被忽略,回退為原始秒數,不崩潰
+    from app.formatting import adjusted_seconds
+    entry = {"EstimateTime": 600, "SrcUpdateTime": "2026-06-30T07:59:00"}
+    assert adjusted_seconds(entry, NOW) == 600

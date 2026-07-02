@@ -22,11 +22,11 @@ def _zh(value):
 def select_matches(
     entries: list[dict], stop_name: str, sub_route: str | None = None
 ) -> list[dict]:
-    """回傳同一 (站名, 子路線前綴) 的所有到站筆數。
+    """回傳同一 (站名，子路線前綴) 的所有到站筆數。
 
-    台南 70 是環狀路線,RouteName 皆為 "70",靠 SubRouteName("70左…"/"70右…")區分左右;
-    同站名在兩子路線都會出現,故 sub_route 指定時以 SubRouteName 前綴過濾。
-    尖峰多車或環狀頭尾同站會有多筆,一律全部回傳交由上層呈現;不存在則回 []。
+    台南 70 是環狀路線，RouteName 皆為 "70"，靠 SubRouteName("70左…"/"70右…")區分左右；
+    同站名在兩子路線都會出現，故 sub_route 指定時以 SubRouteName 前綴過濾。
+    尖峰多車或環狀頭尾同站會有多筆，一律全部回傳交由上層呈現；不存在則回 []。
     """
     matches = []
     for entry in entries:

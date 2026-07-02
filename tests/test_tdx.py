@@ -54,13 +54,13 @@ def test_select_matches_returns_all_when_ambiguous():
 
 
 def test_select_matches_against_real_fixture():
-    import json, pathlib
+    import json
+    import pathlib
     raw = json.loads((pathlib.Path(__file__).parent / "fixtures" / "route70_sample.json").read_text("utf-8"))
     m = select_matches(raw, "臺南高工", "70左")
     assert len(m) == 1 and m[0]["SubRouteName"]["Zh_tw"].startswith("70左")
     e = select_matches(raw, "中華西路二段", "70右")
     assert len(e) == 1 and e[0]["SubRouteName"]["Zh_tw"].startswith("70右")
-
 
 
 @respx.mock
