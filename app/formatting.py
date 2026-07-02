@@ -37,15 +37,23 @@ def _plate(entry: dict) -> str:
     return (entry.get("PlateNumb") or "").strip()
 
 
-def _multi_line(adj: int, plate: str) -> str:
+def _multi_line(adj: int, status: int, plate: str) -> str:
+    if status == 1:  # 尚未發車：台南 TDX 逐站給到站估計
+        if adj <= NEAR_ARRIVAL_SECONDS:
+            return "・ 尚未發車，即將發車"
+        return f"・ 尚未發車，估計 {adj // 60} 分鐘到站"
     if adj <= NEAR_ARRIVAL_SECONDS:
         return f"・ 即將進站的公車:{plate}" if plate else "・ 即將進站"
     mins = adj // 60
     return f"・ {plate} 預估 {mins} 分鐘" if plate else f"・ 預估 {mins} 分鐘"
 
 
-def _single_line(cfg: SlotConfig, adj: int, plate: str) -> str:
+def _single_line(cfg: SlotConfig, adj: int, status: int, plate: str) -> str:
     bus, name = cfg.bus, cfg.stop_name
+    if status == 1:  # 尚未發車
+        if adj <= NEAR_ARRIVAL_SECONDS:
+            return f"🚌 {bus} - 尚未發車，即將發車（{name}）"
+        return f"🚌 {bus} - 尚未發車，估計 {adj // 60} 分鐘到「{name}」"
     if adj <= NEAR_ARRIVAL_SECONDS:
         return (f"🚌 {bus} - {plate} 即將進站到「{name}」" if plate
                 else f"🚌 {bus} - 進站中，即將到「{name}」")
@@ -58,24 +66,25 @@ def format_eta_message(cfg: SlotConfig, matches: list[dict], now: datetime) -> s
     if not matches:
         return NO_DATA_TEXT
 
-    runnable = []  # (adjusted_seconds, plate)
+    predictions = []  # (adjusted_seconds, status, plate)
     for e in matches:
-        if int(e.get("StopStatus", 0)) != 0:
+        status = int(e.get("StopStatus", 0))
+        if status not in (0, 1):  # 交管/末班/未營運不是到站預測
             continue
         adj = adjusted_seconds(e, now)
         if adj is None:
             continue
-        runnable.append((adj, _plate(e)))
-    runnable.sort(key=lambda x: x[0])
-    runnable = runnable[:MAX_BUSES]
+        predictions.append((adj, status, _plate(e)))
+    predictions.sort(key=lambda x: x[0])
+    predictions = predictions[:MAX_BUSES]
 
-    if len(runnable) >= 2:
+    if len(predictions) >= 2:
         lines = [f"🚌 {cfg.bus} 到「{cfg.stop_name}」"]
-        lines += [_multi_line(adj, plate) for adj, plate in runnable]
+        lines += [_multi_line(adj, status, plate) for adj, status, plate in predictions]
         return "\n".join(lines)
-    if len(runnable) == 1:
-        adj, plate = runnable[0]
-        return _single_line(cfg, adj, plate)
+    if len(predictions) == 1:
+        adj, status, plate = predictions[0]
+        return _single_line(cfg, adj, status, plate)
 
     # 0 台可搭 → 依狀態優先序給單一狀態訊息
     statuses = {int(e.get("StopStatus", 0)) for e in matches}
