@@ -32,4 +32,12 @@ def is_due(now: datetime, last_push_at: datetime | None, interval_min: int, wind
         # 當日首推也只在網格點觸發，避免冷啟/延遲造成 off-grid 首推
         return now_mins == last_grid_mins
     grid_time = now.replace(hour=last_grid_mins // 60, minute=last_grid_mins % 60, second=0, microsecond=0)
-    return last_push_at < grid_time
+    if last_push_at >= grid_time:
+        return False
+    
+    # 加入最小間隔防護：確保距離上次推播至少經過「設定間隔減1分鐘」的時間
+    # 避免切換間隔時，因為剛好踩在下一個網格上而立刻觸發短間隔推播
+    if (grid_time - last_push_at).total_seconds() < (interval_min - 1) * 60:
+        return False
+        
+    return True
