@@ -51,14 +51,20 @@ async def boarding_redirect(code: str, fw: str = ""):
         <script>
             window.onload = function() {{
                 Telegram.WebApp.ready();
-                Telegram.WebApp.openLink('{target_url}');
-                Telegram.WebApp.close();
+                // 嘗試開啟外部連結，關閉速覽模式
+                Telegram.WebApp.openLink('{target_url}', {{try_instant_view: false}});
+                
+                // 延遲關閉，讓 iOS 有時間將連結交接給 Safari
+                setTimeout(function() {{
+                    Telegram.WebApp.close();
+                }}, 1500);
             }}
         </script>
         <style>
             body {{
                 background-color: #f0f0f0; 
                 display: flex; 
+                flex-direction: column;
                 justify-content: center; 
                 align-items: center; 
                 height: 100vh; 
@@ -69,12 +75,23 @@ async def boarding_redirect(code: str, fw: str = ""):
                 text-align: center;
                 color: #555;
             }}
+            .btn {{
+                margin-top: 20px;
+                padding: 10px 20px;
+                background-color: #007aff;
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-size: 16px;
+            }}
         </style>
     </head>
     <body>
         <div class="loader">
             <h2>🚌</h2>
             <p>正在為您開啟外部瀏覽器...</p>
+            <p style="font-size: 14px; color: #888;">如未自動跳轉，請點擊下方按鈕</p>
+            <a class="btn" href="{target_url}" target="_blank">手動開啟公車網頁</a>
         </div>
     </body>
     </html>
