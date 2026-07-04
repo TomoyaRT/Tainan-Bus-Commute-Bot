@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 
 from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
 
 from app import scheduler, webhook
 from app.deps import build_runtime
@@ -12,6 +13,7 @@ from app.timeutil import TZ
 CITY = "Tainan"
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 def current_now() -> datetime:
@@ -75,13 +77,14 @@ async def boarding_redirect(code: str, fw: str = ""):
                 color: #555;
             }}
             .btn {{
-                margin-top: 20px;
-                padding: 12px 24px;
+                margin-top: 24px;
+                padding: 15px 30px;
                 background-color: #007aff;
                 color: white;
                 text-decoration: none;
-                border-radius: 8px;
-                font-size: 16px;
+                border-radius: 10px;
+                font-size: 19px;
+                font-weight: bold;
                 border: none;
                 cursor: pointer;
             }}
@@ -89,8 +92,8 @@ async def boarding_redirect(code: str, fw: str = ""):
     </head>
     <body>
         <div class="loader">
-            <h2>🚌</h2>
-            <p>即將前往台南公車預約系統</p>
+            <img src="/static/bus.png" alt="公車圖示" style="max-width: 80%; max-height: 250px; height: auto; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+            <p style="font-size: 18px; color: #333; margin: 10px 0;">即將前往台南公車預約系統</p>
             <button class="btn" onclick="doOpen()">開啟公車網頁</button>
         </div>
     </body>
