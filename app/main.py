@@ -53,6 +53,8 @@ async def boarding_redirect(code: str, fw: str = ""):
         <script>
             window.onload = function() {{
                 Telegram.WebApp.ready();
+                // 強制將小程式展開為全螢幕高度，避免預設的半開狀態
+                Telegram.WebApp.expand();
             }};
             
             function doOpen() {{
@@ -93,8 +95,8 @@ async def boarding_redirect(code: str, fw: str = ""):
     <body>
         <div class="loader">
             <img src="/static/bus.png" alt="公車圖示" style="max-width: 80%; max-height: 250px; height: auto; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
-            <p style="font-size: 18px; color: #333; margin: 10px 0;">即將前往台南公車預約系統</p>
-            <button class="btn" onclick="doOpen()">開啟公車網頁</button>
+            <p style="font-size: 18px; color: #333; margin: 10px 0;">即將前往外部的瀏覽器</p>
+            <button class="btn" onclick="doOpen()">我要上車</button>
         </div>
     </body>
     </html>
