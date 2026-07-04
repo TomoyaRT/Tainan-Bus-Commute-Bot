@@ -33,6 +33,55 @@ async def tick(x_tick_token: str = Header(default="")):
     return {"ok": True}
 
 
+from fastapi.responses import HTMLResponse
+
+@app.get("/boarding_redirect")
+async def boarding_redirect(code: str, fw: str = ""):
+    fw_param = f"&fw={fw}" if fw else ""
+    target_url = f"https://qrcode2384.tainan.gov.tw/QRCode/rsvStop.html?code={code}{fw_param}"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>跳轉中...</title>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <script>
+            window.onload = function() {{
+                Telegram.WebApp.ready();
+                Telegram.WebApp.openLink('{target_url}');
+                Telegram.WebApp.close();
+            }}
+        </script>
+        <style>
+            body {{
+                background-color: #f0f0f0; 
+                display: flex; 
+                justify-content: center; 
+                align-items: center; 
+                height: 100vh; 
+                font-family: sans-serif; 
+                margin: 0;
+            }}
+            .loader {{
+                text-align: center;
+                color: #555;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="loader">
+            <h2>🚌</h2>
+            <p>正在為您開啟外部瀏覽器...</p>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
+
 @app.post("/webhook")
 async def telegram_webhook(
     request: Request,
@@ -42,5 +91,10 @@ async def telegram_webhook(
         raise HTTPException(status_code=403, detail="forbidden")
     update = await request.json()
     store, tdx, telegram = build_runtime()
-    await webhook.handle_update(update, store, telegram, current_now(), tdx, CITY)
+    
+    base_url = str(request.base_url).rstrip("/")
+    if base_url.startswith("http://") and "localhost" not in base_url:
+        base_url = base_url.replace("http://", "https://")
+        
+    await webhook.handle_update(update, store, telegram, current_now(), tdx, CITY, base_url)
     return {"ok": True}

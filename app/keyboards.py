@@ -34,12 +34,12 @@ def settings_reply_keyboard() -> dict:
     }
 
 
-def boarding_stop_keyboard() -> dict:
-    """我要上車：提供對應預約上車網址的 Inline 按鈕。"""
+def boarding_stop_keyboard(base_url: str) -> dict:
+    """我要上車：利用 Telegram WebApp 機制強制跳轉外部瀏覽器 (Safari)。"""
     return {
         "inline_keyboard": [
-            [{"text": "台南高工", "url": "https://qrcode2384.tainan.gov.tw/QRCode/rsvStop.html?code=0551"}],
-            [{"text": "中華西路二段", "url": "https://qrcode2384.tainan.gov.tw/QRCode/rsvStop.html?code=1046&fw=no"}],
+            [{"text": "台南高工", "web_app": {"url": f"{base_url}/boarding_redirect?code=0551"}}],
+            [{"text": "中華西路二段", "web_app": {"url": f"{base_url}/boarding_redirect?code=1046&fw=no"}}],
         ]
     }
 

@@ -17,11 +17,11 @@ MANUAL_PUSH_COOLDOWN = timedelta(minutes=1)
 MANUAL_SLOT_HEADERS = {"morning": "🌅 上班", "evening": "🌃 下班"}
 
 
-async def handle_update(update: dict, store, telegram, now: datetime, tdx=None, city: str = "Tainan") -> None:
+async def handle_update(update: dict, store, telegram, now: datetime, tdx=None, city: str = "Tainan", base_url: str = "") -> None:
     if "callback_query" in update:
         await _handle_callback(update["callback_query"], store, telegram, now)
     elif "message" in update:
-        await _handle_message(update["message"], store, telegram, now, tdx, city)
+        await _handle_message(update["message"], store, telegram, now, tdx, city, base_url)
 
 
 async def _ensure_user(store, chat_id: int) -> UserSettings:
@@ -118,7 +118,7 @@ async def _manual_push(chat_id: int, store, telegram, now: datetime, tdx, city: 
     await telegram.send_message(chat_id, "\n\n".join(blocks))
 
 
-async def _handle_message(message: dict, store, telegram, now: datetime, tdx, city: str) -> None:
+async def _handle_message(message: dict, store, telegram, now: datetime, tdx, city: str, base_url: str) -> None:
     chat_id = message["chat"]["id"]
     text = message.get("text", "")
     if text.startswith("/start"):
@@ -131,7 +131,7 @@ async def _handle_message(message: dict, store, telegram, now: datetime, tdx, ci
     elif text == BTN_PUSH_NOW:
         await _manual_push(chat_id, store, telegram, now, tdx, city)
     elif text == BTN_BOARDING:
-        await telegram.send_message(chat_id, "請問您要上車的公車站是？", boarding_stop_keyboard())
+        await telegram.send_message(chat_id, "請問您要上車的公車站是？", boarding_stop_keyboard(base_url))
     elif text == BTN_SETTINGS:
         await telegram.send_message(chat_id, "請選擇操作項目：", settings_main_keyboard())
 
