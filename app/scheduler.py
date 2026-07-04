@@ -48,7 +48,7 @@ async def process_user(now, settings, store, tdx, telegram, city, cache: dict | 
 
         matches = select_matches(entries, cfg.stop_name, cfg.sub_route)
         sr.fail_count = 0
-        text = format_eta_message(cfg, matches, now)
+        text = format_eta_message(cfg, entries, matches, now)
         await telegram.send_message(settings.chat_id, text, push_inline_keyboard(slot))
         sr.last_push_at = now
     except TDXError as exc:

@@ -106,7 +106,7 @@ async def _manual_push(chat_id: int, store, telegram, now: datetime, tdx, city: 
             if cfg.route not in cache:
                 cache[cfg.route] = await tdx.get_eta(city, cfg.route, now)
             matches = select_matches(cache[cfg.route], cfg.stop_name, cfg.sub_route)
-            body = format_eta_message(cfg, matches, now)
+            body = format_eta_message(cfg, cache[cfg.route], matches, now)
             blocks.append(f"{MANUAL_SLOT_HEADERS[name]}\n{body}")
     except TDXError as exc:
         if exc.status_code in (403, 429):

@@ -22,6 +22,9 @@ def source_time(entry: dict) -> datetime | None:
                 return dt
     return None
 
+def _zh(value):
+    return value.get("Zh_tw") if isinstance(value, dict) else value
+
 
 def adjusted_seconds(entry: dict, now: datetime) -> int | None:
     est = entry.get("EstimateTime")
@@ -62,12 +65,71 @@ def _single_line(cfg: SlotConfig, adj: int, status: int, plate: str) -> str:
             else f"🚌 {bus} - 預估 {mins} 分鐘到「{name}」")
 
 
-def format_eta_message(cfg: SlotConfig, matches: list[dict], now: datetime) -> str:
+def extrapolate_subsequent_buses(cfg: SlotConfig, entries: list[dict], matches: list[dict], now: datetime) -> list[dict]:
+    if not matches:
+        return []
+    
+    target_match = matches[0]
+    target_seq = target_match.get("StopSequence")
+    if target_seq is None:
+        return []
+
+    buses = {}
+    for d in entries:
+        sub_route = cfg.sub_route
+        if sub_route is not None and not (_zh(d.get("SubRouteName")) or "").startswith(sub_route):
+            continue
+            
+        plate = _plate(d)
+        seq = d.get("StopSequence")
+        est = d.get("EstimateTime")
+        if plate and seq is not None and est is not None:
+            adj = adjusted_seconds(d, now)
+            if adj is not None:
+                if plate not in buses:
+                    buses[plate] = []
+                buses[plate].append((seq, adj))
+
+    existing_plates = {_plate(m) for m in matches if _plate(m)}
+    fake_matches = []
+    
+    for plate, stops in buses.items():
+        if plate in existing_plates:
+            continue
+            
+        stops.sort(key=lambda x: x[0])
+        if stops[0][0] > target_seq:
+            continue
+            
+        if len(stops) >= 2:
+            avg_time = (stops[-1][1] - stops[0][1]) / max(1, stops[-1][0] - stops[0][0])
+        else:
+            avg_time = 120
+            
+        last_seq, last_est = stops[-1]
+        if last_seq < target_seq:
+            ext_est = last_est + (target_seq - last_seq) * avg_time
+            
+            fake = dict(target_match)
+            fake["PlateNumb"] = plate
+            fake["EstimateTime"] = ext_est
+            fake["StopStatus"] = 0
+            fake.pop("SrcUpdateTime", None)
+            fake.pop("DataTime", None)
+            fake_matches.append(fake)
+            
+    return fake_matches
+
+
+def format_eta_message(cfg: SlotConfig, entries: list[dict], matches: list[dict], now: datetime) -> str:
     if not matches:
         return NO_DATA_TEXT
 
+    fake_matches = extrapolate_subsequent_buses(cfg, entries, matches, now)
+    all_matches = matches + fake_matches
+
     predictions = []  # (adjusted_seconds, status, plate)
-    for e in matches:
+    for e in all_matches:
         status = int(e.get("StopStatus", 0))
         if status not in (0, 1):  # 交管/末班/未營運不是到站預測
             continue
@@ -87,7 +149,7 @@ def format_eta_message(cfg: SlotConfig, matches: list[dict], now: datetime) -> s
         return _single_line(cfg, adj, status, plate)
 
     # 0 台可搭 → 依狀態優先序給單一狀態訊息
-    statuses = {int(e.get("StopStatus", 0)) for e in matches}
+    statuses = {int(e.get("StopStatus", 0)) for e in all_matches}
     if 4 in statuses:
         return f"{cfg.bus} - 今日未營運"
     if 3 in statuses:
